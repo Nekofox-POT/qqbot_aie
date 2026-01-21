@@ -46,6 +46,17 @@ def log(msg):
     open('AIQ.log', 'a', encoding='utf-8').write(f'[{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}]{msg}\n')
     print(msg)
 
+###########
+# 变量配置 #
+##########
+def config_load(config):
+
+    global aiq_fastapi_port, aiq_target_account, aiq_user_name, aiq_assistant_name
+    aiq_fastapi_port = config.get('port')
+    aiq_target_account = config.get('user_id')
+    aiq_user_name = config.get('user_name')
+    aiq_assistant_name = config.get('assistant_name')
+
 ########################################################################################################################
 # 信息处理 #
 
@@ -58,6 +69,7 @@ def msg_store():
 
     ###########
     ### 开启进程
+    log('启动fastapi')
     ps_fastapi = multiprocessing.Process(target=msg_receive.main, args=(aiq_fastapi_port, msg_queue))
     ps_fastapi.start()
 
@@ -79,7 +91,7 @@ def msg_store():
                 # 如果是私聊 且 目标账号吻合
                 if tmp.get('message_type') == 'private' and tmp.get('user_id') == aiq_target_account:
                     # 添加消息
-                    msg_list.append({'role': 'user', 'msg': tmp['message'], 'raw_msg': tmp['raw_message'], 'time': f'{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'})
+                    msg_list.append({'role': 'user', 'msg': tmp['message'], 'raw_msg': tmp['raw_message'], 'time': f'[{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}]'})
 
             ### 处理长度 ###
             # 如果上下文太长(大于16k)
@@ -87,10 +99,11 @@ def msg_store():
                 # 删除首项
                 del msg_list[0]
 
-        finally:
+        except:
+            pass
 
-            ### 性能限制 ###
-            time.sleep(0.1)
+        ### 性能限制 ###
+        time.sleep(0.1)
 
 ###########
 # 信息获取 #
@@ -103,7 +116,7 @@ def msg_get():
 
     ### 处理 ###
     # 缓存池
-    user_msg = ''
+    user_msg = f'当前时间 {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}\n\n'
     # 遍历信息
     for i in tmp:
 
@@ -121,11 +134,11 @@ def msg_get():
             # 标题
             user_msg += f'{i['time']} {aiq_user_name} :\n'
 
-            # 分段讨论
+            # 分长度讨论
             if len(i['msg']) == 1:
                 # 如果是纯文字
                 if i['raw_msg'][0] != '[':
-                    log(f'用户输入: {i['msg']}')
+                    user_msg += i['raw_msg']
             elif len(i['msg']) == 2:
                 # 如果是回复
                 if i['raw_msg'][0].get('type') == 'reply' and i['raw_msg'][1].get('type') == 'text':
@@ -133,14 +146,22 @@ def msg_get():
             elif len(i['msg']) == 3:
                 pass
 
-
         # 添加分割符
         user_msg += '\n'
+
+    # 返回
+    return user_msg
 
 ########################################################################################################################
 # 主程序 #
 ########
-def main():
+def main(config):
+
+    log('AIQ启动')
+
+    ###########
+    ### 配置变量
+    config_load(config)
 
     ##################
     ### Windows安全声明
@@ -152,12 +173,13 @@ def main():
     ps_msg_store.start()
 
     while True:
-        try:
-            msg = msg_queue.get(False)
-            print(msg)
-        except:
-            time.sleep(0.1)
+        # 每隔10秒输出一次
+        print('-----------------------------')
+        print(msg_get())
+        print('-----------------------------')
+        time.sleep(30)
 
 ########################################################################################################################
 if __name__ == '__main__':
-    main()
+    import aiq_start
+    aiq_start.aiq_start()

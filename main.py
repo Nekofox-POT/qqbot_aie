@@ -180,5 +180,5 @@ def main(config):
 
 ########################################################################################################################
 if __name__ == '__main__':
-    import aiq_start
-    aiq_start.aiq_start()
+    import start
+    start.aiq_start()

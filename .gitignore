@@ -163,6 +163,6 @@ cython_debug/
 
 old/
 test/
-config.json
+config.ppp
 role_set.txt
 AIQ.log

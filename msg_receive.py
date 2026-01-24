@@ -37,15 +37,28 @@ async def index(request: fastapi.Request):
         tmp = json.loads(tmp.decode('utf-8'))
 
         ### 解析 ###
-        msg_queue.put(tmp)
         # 心跳
         if tmp.get('post_type') == 'meta_event':
-            msg_queue.put({'role': 'heart', 'time': int(time.time())})
-        # 消息
+            msg_queue.put({'type': 'heart', 'time': int(time.time()), 'status': tmp['status']['online']})
+        # 私聊信息
         elif tmp.get('post_type') == 'message':
-            # 私聊 且 目标符合
             if tmp.get('message_type') == 'private' and tmp.get('user_id') == user_id:
-                msg_queue.put({'role': 'user', 'msg': tmp['message'], 'raw_msg': tmp['raw_message'], 'time': f'[{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}]'})
+                # 指令
+                if tmp['raw_message'][0] == '#':
+                    cmd_queue.put(tmp['raw_message'][1:])
+                # 普通信息
+                else:
+                    msg_queue.put({
+                        'type': 'user',
+                        'msg': tmp['message'],
+                        'raw_msg': tmp['raw_message'],
+                        'msg_id': tmp['message_id'],
+                        'time': f'{datetime.datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")}'
+                    })
+        # 撤回
+        elif tmp.get('post_type') == 'notice':
+            if tmp.get('notice_type') == 'friend_recall' and tmp.get('user_id') == user_id:
+                msg_queue.put({'type': 'recall', 'msg_id': tmp['message_id']})
 
     except:
         pass
@@ -54,9 +67,11 @@ async def index(request: fastapi.Request):
 ########################################################################################################################
 # 主函数 #
 ########
-def main(port, que, qid):
+def main(port, msg_que, cmd_que, qid):
+    global cmd_queue
     global msg_queue
     global user_id
     user_id = qid
-    msg_queue = que
+    msg_queue = msg_que
+    cmd_queue = cmd_que
     uvicorn.run(app, host="0.0.0.0", port=port)

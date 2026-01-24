@@ -18,6 +18,7 @@ import time
 # 自创建模块 #
 ############
 from first_start_guide_child import set_prompt, set_ai, set_llbot_port, set_local_model
+from aes_encryption import aes_encryption
 
 #########
 # 变量池 #
@@ -26,7 +27,7 @@ from first_start_guide_child import set_prompt, set_ai, set_llbot_port, set_loca
 ########################################################################################################################
 # 主程序 #
 ########
-def guide():
+def guide(version):
 
     config = {}
 
@@ -43,9 +44,8 @@ def guide():
     ### 展示页 ###
     print('----------------------------')
     print('aie配置程序')
-    with open('version.ppp', 'rb') as f:
-        tmp = pickle.load(f)
-    print(f'当前版本: {tmp}')
+    config['version'] = version
+    print(f'当前版本: {version}')
     print('----------------------------')
 
     ### 步骤1：配置llbot端口 ###
@@ -76,7 +76,7 @@ def guide():
     ### 写入 ###
     print('写入配置文件')
     with open('config.ppp', 'wb') as f:
-        pickle.dump(config, f)
+        f.write(aes_encryption.encrypt(pickle.dumps(config)))
     print('写入成功！')
 
     print('文件创建完成，即将进入初始化...')

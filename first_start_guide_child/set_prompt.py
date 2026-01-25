@@ -2,7 +2,7 @@
 # aiq/aie 引导创建程序
 # 步骤3：配置提示词
 #
-
+import os
 ########################################################################################################################
 # 资源准备 #
 
@@ -48,10 +48,11 @@ def main():
     print('步骤3/3：配置提示词')
 
     ### 配置提示词 ###
-    with open('role_set.txt', 'w', encoding='utf-8') as f:
-        f.write(prompt_example)
-    print('我们帮你生成了一份角色模板')
-    print('角色模板可以自由修改角色设定。')
+    if 'role_set.txt' not in os.listdir():
+        with open('role_set.txt', 'w', encoding='utf-8') as f:
+            f.write(prompt_example)
+        print('我们帮你生成了一份角色模板')
+        print('角色模板可以自由修改角色设定。')
     print('请编辑保存好之后按Enter继续...')
     subprocess.run(['notepad', 'role_set.txt'])
     input('>|')

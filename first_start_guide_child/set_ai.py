@@ -126,11 +126,11 @@ def main():
     while True:
         tmp = str(input('>'))
         if tmp == '1':
-            mode_random = True
+            model_random = True
             print(f'选择了: "是"')
             break
         elif tmp == '2':
-            mode_random = False
+            model_random = False
             print(f'选择了: "否"')
             break
         else:
@@ -161,13 +161,13 @@ def main():
     print(f'已添加的模型：')
     for i in range(len(model_list)):
        print(f'    {i + 1}. 模型名称："{model_list[i][1]}" 模型地址："{model_list[i][0]}" api_key："{model_list[i][2]}"')
-    print(f'是否使用随机模式：{mode_random}')
+    print(f'是否使用随机模式：{model_random}')
     print(f'是否使用本地模型推理：{local_mode}')
     print('##########################')
     print('')
     out = {
         'model_list': model_list,
-        'mode_random': mode_random,
+        'model_random': model_random,
         'local_model': local_mode,
     }
     print('----------------------------')

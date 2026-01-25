@@ -165,5 +165,5 @@ old/
 test/
 config.ppp
 role_set.txt
-AIQ.log
+aie_log.txt
 aes_encryption/aes_encryption.py

@@ -113,12 +113,12 @@ def main():
         while True:
             tmp = str(input('>'))
             if tmp.isdigit():
-                target_account = int(tmp)
-                print(f'输入了: "{target_account}"')
+                user_id = int(tmp)
+                print(f'输入了: "{user_id}"')
                 print('测试...')
                 try:
                     r = json.loads(requests.post('http://192.168.91.128:8312/send_private_msg', data={
-                        'user_id': target_account,
+                        'user_id': user_id,
                         'message': '你好吖~（突然冒出！）',
                     }).text)
                     if r['status'] == 'ok':
@@ -139,7 +139,7 @@ def main():
         print(f'监听端口：{port}')
         print(f'llbot地址：{post_addres}')
         print(f'是否开启心跳包检查：{heart_check}')
-        print(f'对象QQ号：{target_account}')
+        print(f'对象QQ号：{user_id}')
         print('##########################')
         print('')
         print('1.确认 2.重新填写 （默认：1）')
@@ -152,7 +152,7 @@ def main():
                         'port': port,
                         'post_addres': post_addres,
                         'heart_check': heart_check,
-                        'target_account': target_account,
+                        'user_id': user_id,
                     }
                 print('')
                 print('----------------------------')

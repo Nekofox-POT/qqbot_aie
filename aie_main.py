@@ -21,7 +21,7 @@ import random
 # 自创建模块 #
 ############
 import msg_receive
-from chat import chat_api
+from chat import chat_api, chat_local
 import send_api
 
 #########
@@ -84,33 +84,34 @@ def msg_store():
             tmp = msg_queue.get_nowait()
 
             ### 解码 ###
-            # 心跳
-            if tmp['type'] == 'heart':
-                last_heart_post = int(time.time())
-            # 用户
-            elif tmp['type'] == 'user':
-                log(f'收到消息：{tmp['raw_msg']}')
-                if len(tmp['msg']) == 1 and tmp['raw_msg'][0] != '[':
-                    msg_list.append({
-                        'type': 'user',
-                        'msg': tmp['raw_msg'],
-                        'msg_id': tmp['msg_id'],
-                        'time': tmp['time'],
-                    })
-            # 撤回
-            elif tmp['type'] == 'recall':
-                for i in range(len(msg_list)):
-                    if msg_list[i]['msg_id'] == tmp['msg_id']:
-                        log(f'消息撤回：{msg_list.pop(i)}')
-                        break
-            # ai
-            elif tmp['type'] == 'assistant':
-                log(f'回复: {tmp['msg']}')
-                msg_list.append(tmp)
-            # 系统消息
-            elif tmp['type'] == 'system':
-                log(tmp['msg'])
-                msg_list.append(tmp)
+            with msg_list_lock:
+                # 心跳
+                if tmp['type'] == 'heart':
+                    last_heart_post = int(time.time())
+                # 用户
+                elif tmp['type'] == 'user':
+                    if len(tmp['msg']) == 1 and tmp['raw_msg'][0] != '[':
+                        log(f'收到消息：{tmp['raw_msg']}')
+                        msg_list.append({
+                            'type': 'user',
+                            'msg': tmp['raw_msg'],
+                            'msg_id': tmp['msg_id'],
+                            'time': tmp['time'],
+                        })
+                # 撤回
+                elif tmp['type'] == 'recall':
+                    for i in range(len(msg_list)):
+                        if msg_list[i].get('msg_id') == tmp['msg_id']:
+                            log(f'消息撤回：{msg_list.pop(i)}')
+                            break
+                # ai
+                elif tmp['type'] == 'assistant':
+                    log(f'回复: {tmp['msg']}')
+                    msg_list.append(tmp)
+                # 系统消息
+                elif tmp['type'] == 'system':
+                    log(f'[{tmp['msg']}]')
+                    msg_list.append(tmp)
 
         except:
 
@@ -129,37 +130,49 @@ def msg_store():
 ##########
 def msg_get():
 
-    ### 初始化 ###
-    new_msg = False
-    try:
-        if msg_list[-1]['type'] == 'user':
-            new_msg = True
-        elif msg_list[-1]['type'] == 'system':
-            if msg_list[-2]['type'] == 'user':
+    last_user_time = 0
+
+    with msg_list_lock:
+        ### 新消息提醒 ###
+        new_msg = False
+        try:
+            if msg_list[-1]['type'] == 'user':
                 new_msg = True
-    except:
-        pass
-    msg = f'\n当前时间：{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}\n'
-
-    ### 格式化 ###
-    for i in msg_list:
-        msg += '\n'
-
-        # 用户信息
-        if i['type'] == 'user':
-            msg += f'{i['time']} {config['user_name']} :\n'
-            msg += i['msg']
-        # ai信息
-        elif i['type'] == 'assistant':
-            msg += f'{i['time']} {config['assistant_name']} :\n'
-            msg += i['msg']
-        # 系统信息
-        elif i['type'] == 'system':
+            elif msg_list[-1]['type'] == 'system':
+                if msg_list[-1]['notice']:
+                    new_msg = True
+                else:
+                    if msg_list[-2]['type'] == 'user':
+                        new_msg = True
+        except:
             pass
+        msg = f'\n当前时间：{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}\n\n'
 
-        msg += '\n'
+        ### 格式化 ###
+        for i in msg_list:
 
-    return [new_msg, msg]
+            # 用户信息
+            if i['type'] == 'user':
+                msg += f'{i['time']} {config['user_name']} :\n'
+                msg += i['msg']
+                last_user_time = i['time']
+
+            # ai信息
+            elif i['type'] == 'assistant':
+                msg += f'{i['time']} {config['assistant_name']} :\n'
+                msg += i['msg']
+
+            # 系统信息
+            elif i['type'] == 'system':
+                pass
+
+            msg += '\n'
+
+    print('---------------------')
+    print(msg)
+    print('---------------------')
+
+    return [new_msg, msg, last_user_time]
 
 
 ########################################################################################################################
@@ -168,62 +181,101 @@ def msg_get():
 #########
 # 动作流 #
 #########
-def action():
+def action(jump = False):
 
-    global last_action_time
+    if not jump:
 
-    # 暂停15s
-    time.sleep(10)
+        global last_action_time
 
-    # 记录
-    last_action_time = int(time.time())
+        # 暂停15s
+        time.sleep(10)
+
+        # 记录
+        last_action_time = int(time.time())
 
 #############
 # ai运行核心 #
 ############
 def assistant_core():
 
+    re_generate = False
+
     ### 启动 ###
     log('启动ai模块.')
     while power:
 
         ### 执行动作流 ###
-        action()
+        if re_generate:
+            action(True)
+            re_generate = False
+        else:
+            action()
 
         ### 读取信息 ###
         tmp = msg_get()
-        print(tmp)
         # 如果没有新的消息就不管
         if not tmp[0]:
+            continue
+
+        # 记录最后信息
+        last_time = tmp[2]
+
+        ### 读取提示词 ###
+        try:
+            with open('role_set.txt', 'r', encoding='utf-8') as f:
+                prompt = f.read()
+        except:
+            log('文件读取出错，请检查文件完整性.')
             continue
 
         ### 生成(在线ai) ###
         result = []
         for i in range(1, 4):
-            # 读取提示词
-            try:
-                with open('role_set.txt', 'r', encoding='utf-8') as f:
-                    prompt = f.read()
-            except:
-                log('文件读取出错，请检查文件完整性.')
-                break
             # 生成
             result = chat_api.main(config['model_list'], config['model_random'], prompt, tmp[1])
             try:
                 result = json.loads(result)
-                print('json格式正常.')
                 break
             except:
-                print(f'json格式错误，尝试重新生成 ({i} / 3)')
+                log(f'json格式错误，尝试重新生成 ({i} / 3)')
+                result = []
                 continue
+
+        ### 没有 ###
+        if not result:
+            # 本地生成
+            for i in range(1, 4):
+                result = chat_local.main(prompt, tmp[1])
+                try:
+                    result = json.loads(result)
+                    break
+                except:
+                    log(f'json格式错误，尝试重新生成 ({i} / 3)')
+                    result = []
+                    continue
+
+        ### 还是没有 ###
+        if not result:
+            log('生成失败.')
+            continue
+
+        ###  若生成后有新的信息，则重新生成 ###
+        tmp = msg_get()
+        if tmp[2] != last_time:
+            log('有新消息，重新生成...')
+            re_generate = True
+            continue
 
         ### 回复 ###
         for i in result:
-            time.sleep(len(i) * random.randint(2, 20) * 0.1)
+            # 模拟打字延迟
+            for e in i:
+                time.sleep(random.uniform(0.5, 1))
+            # 输出
             msg_list.append({
                 'type': 'assistant',
                 'msg': i,
-                'time': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'time': datetime.datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'),
             })
             tmp = send_api.send_private_msg(config['post_addres'], config['user_id'], i)
             if tmp:
@@ -231,7 +283,7 @@ def assistant_core():
 
 
 
-        ########################################################################################################################
+########################################################################################################################
 # 主程序 #
 ########
 def main(input_config):

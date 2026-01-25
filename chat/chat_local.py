@@ -8,9 +8,8 @@
 ###########
 # 第三方库 #
 ##########
-import openai
+import ollama
 import datetime
-import random
 import re
 import json
 
@@ -110,55 +109,36 @@ def extract_json(text):
 
     return None
 
+################
+# think标签移除 #
+###############
+def remove_think_tag(text):
+    # 使用正则表达式移除<think>标签及其内容
+    clean_text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL).strip()
+    return clean_text
+
 ########################################################################################################################
 # 开始程序 #
 ##########
-def main(model_list, model_random, prompt, msg):
+def main(prompt, msg):
 
-    # 随机模式
-    if model_random:
+    ### 初始化 ###
+    log('开始本地生成...')
+    client = ollama.Client(host='http://127.0.0.1:11434')
 
-        model = random.choice(model_list)
-        log(f'使用模型：{model[1]}')
-        log('（随机模式）开始在线生成...')
-        try:
-            result = openai.OpenAI(
-                base_url=model[0],
-                api_key=model[2],
-            ).chat.completions.create(
-                model=model[1],
-                stream=False,
-                messages=[
-                    {"role": "system", "content": rule_prompt + prompt},
-                    {"role": "user", "content": msg}
-                ]
-            ).choices[0].message.content
-            return extract_json(result)
-        except Exception as e:
-            log(f'{model[1]}生成失败：{e}')
-            log('切换顺序模式重试...')
+    ### 推理 ###
+    try:
+        tmp = client.chat(
+            model='qwen3-14b-q6-k:latest',
+            options={"temperature": 1},
+            msg=[
+                {"role": "system", "content": rule_prompt + prompt},
+                {"role": "user", "content": msg}
+            ],
+        )
+    except Exception as e:
+        log(f'ollama生成失败：{e}')
+        return None
 
-    # 顺序模式
-
-    ### 生成 ###
-    for i in model_list:
-        log(f'使用模型：{i[1]}')
-        log('（顺序模式）开始在线生成...')
-        try:
-            result = openai.OpenAI(
-                base_url=i[0],
-                api_key=i[2],
-            ).chat.completions.create(
-                model=i[1],
-                stream=False,
-                messages=[
-                    {"role": "system", "content": rule_prompt + prompt},
-                    {"role": "user", "content": msg}
-                ]
-            ).choices[0].message.content
-            return extract_json(result)
-        except Exception as e:
-            log(f'{i[1]}生成失败：{e}')
-            log('下一个模型重试.')
-
-    return None
+    ### 返回 ###
+    return extract_json(remove_think_tag(tmp.content))

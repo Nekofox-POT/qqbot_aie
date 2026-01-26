@@ -33,10 +33,13 @@ rule_prompt = (
     '不要体现出机器人的特征。不要过于频繁的使用机器人术语。\n'
     '言语可以比较抽象，幽默，激进，二次元化。\n'
     '不要主动开辟话题。\n'
-    '主动向对方发出邀请。\n'
+    '不要主动向对方发出邀请。\n'
     '聊天不要太主动。\n'
     '使用json回复。直接输出可以使用json.loads()转换的语句\n'
     '输出的语句前面不需要带时间，名字。\n'
+    '聊天过程会有像“{系统提示：****}”的系统提示，需要做出相对应的回应。\n'
+    '当对方和你说晚安后，在json最后输出“sleep”，如果是系统提示则无视这条规则。\n'
+    '当当前话题结束时，只输出["end"]，如果是sleep或系统提示则无视这条规则\n'
     '\n'
     '[对话示例]\n'
     '假设你是A，用户是B\n'
@@ -120,7 +123,13 @@ def remove_think_tag(text):
 ########################################################################################################################
 # 开始程序 #
 ##########
-def main(prompt, msg):
+def main(allow_doi, prompt, msg):
+
+    # doi字词添加
+    if allow_doi:
+        tmp = rule_prompt[:412] + '如果包含关于性的敏感词语，则只输出“["use_doi"]”，如果是系统提示则无视这条规则。\n' + rule_prompt[412:]
+    else:
+        tmp = rule_prompt
 
     ### 初始化 ###
     log('开始本地生成...')
@@ -128,17 +137,17 @@ def main(prompt, msg):
 
     ### 推理 ###
     try:
-        tmp = client.chat(
+        result = client.chat(
             model='qwen3-14b-q6-k:latest',
             options={"temperature": 1},
-            msg=[
-                {"role": "system", "content": rule_prompt + prompt},
+            messages=[
+                {"role": "system", "content": tmp + prompt},
                 {"role": "user", "content": msg}
             ],
-        )
+        ).message
     except Exception as e:
         log(f'ollama生成失败：{e}')
         return None
 
     ### 返回 ###
-    return extract_json(remove_think_tag(tmp.content))
+    return extract_json(remove_think_tag(result.content))

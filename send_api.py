@@ -31,7 +31,10 @@ def send_private_msg(host, user_id, msg):
             'user_id': user_id,
             'message': msg,
         }).text)
+        if r['status'] != 'ok':
+            return r
     except Exception as e:
+        print(e)
         return e
     else:
         return None

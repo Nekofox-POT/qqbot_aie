@@ -55,7 +55,7 @@ def add_model():
         except Exception as e:
             print('测试失败，请检查api_key是否正确或模型地址是否正确')
             print(f'失败原因：{e}')
-            print('1.重新写入 2.取消写入')
+            print('1.重新写入 2.取消写入 3.仍要写入')
             while True:
                 tmp = str(input('>'))
                 if tmp == '1':
@@ -64,6 +64,9 @@ def add_model():
                 elif tmp == '2':
                     print('取消写入.')
                     return None
+                elif tmp == '3':
+                    print('写入.')
+                    return [api, model, key]
                 else:
                     print('请输入正确的选项.')
 

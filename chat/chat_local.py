@@ -138,7 +138,7 @@ def main(allow_doi, prompt, msg):
     ### 推理 ###
     try:
         result = client.chat(
-            model='qwen3-14b-q6-k:latest',
+            model='deepseek-r1-14b-q6-k:latest',
             options={"temperature": 1},
             messages=[
                 {"role": "system", "content": tmp + prompt},
@@ -150,4 +150,6 @@ def main(allow_doi, prompt, msg):
         return None
 
     ### 返回 ###
+    print('#1')
+    print(result.content)
     return extract_json(remove_think_tag(result.content))

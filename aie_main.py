@@ -39,6 +39,10 @@ last_user_time = 0  # 用户最后一次发言时间
 doi_mode = False    # doi模式
 last_doi_list_range = 0   # 最后一个激活爱爱的语句指针
 
+# 睡眠类
+sleep_time = [random.choice([22, 23, 0, 1, 2, 3, 4]), random.randint(5, 54)] # 随机睡眠时间段
+is_sleep = False    # 睡觉指示
+
 ### 读取提示词 ###
 try:
     with open('role_set.txt', 'r', encoding='utf-8') as f:
@@ -79,7 +83,7 @@ def log(msg):
 ##########
 def msg_store():
 
-    global last_heart_post, doi_mode, last_doi_list_range
+    global last_heart_post, doi_mode, last_doi_list_range, is_sleep
 
     ### 启动fastapi ###
     log('启动fastapi.')
@@ -98,7 +102,6 @@ def msg_store():
                 # 心跳
                 if tmp['type'] == 'heart':
                     last_heart_post = int(time.time())
-
                 # 用户
                 elif tmp['type'] == 'user':
 
@@ -126,14 +129,12 @@ def msg_store():
                             'msg_id': tmp['msg_id'],
                             'time': tmp['time'],
                         })
-
                 # 撤回
                 elif tmp['type'] == 'recall':
                     for i in range(len(msg_list)):
                         if msg_list[i].get('msg_id') == tmp['msg_id']:
                             log(f'消息撤回：{msg_list.pop(i)}')
                             break
-
                 # ai
                 elif tmp['type'] == 'assistant':
                     log(f'回复: {tmp['msg']}')
@@ -171,6 +172,10 @@ def msg_store():
                                         pass
                                     print('----------------------')
                                     break
+                    # 睡觉
+                    elif tmp['msg'] == 'sleep':
+                        log('该睡觉了')
+                        is_sleep = True
                     # 普通消息
                     else:
                         # 发送
@@ -179,7 +184,6 @@ def msg_store():
                             log(f'发送失败：{r}')
                             continue
                         msg_list.append(tmp)
-
                 # 系统消息
                 elif tmp['type'] == 'system':
                     log(f'[{tmp['msg']}]')
@@ -239,7 +243,7 @@ def msg_get():
 
                 # 系统信息
                 elif i['type'] == 'system':
-                    pass
+                    msg += f'{i['time']} {i['msg']}\n'
 
                 msg += '\n'
 
@@ -298,7 +302,36 @@ def action(jump = False):
 
     if not jump:
 
-        global last_action_time
+        global last_action_time, sleep_time, is_sleep
+
+        ### 睡眠操作 ###
+        # 该睡觉了
+        if is_sleep:
+            # 睡眠（随机6-9小时）
+
+            tmp = random.randint(5 * 60, 9 * 60)
+            log(f'开始睡眠，时长{tmp}分钟...')
+            time.sleep(tmp * 60)
+            is_sleep = False
+            log('醒来.')
+            msg_queue.put({
+                'type': 'system',
+                'time': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'msg': '{系统提示：你醒了}',
+                'notice': True
+            })
+            sleep_time = [random.choice([22, 23, 0, 1, 2, 3, 4]), random.randint(5, 54)]
+            log(f'睡眠时间重置：{sleep_time}')
+            time.sleep(30)
+        # 睡觉提示
+        if time.localtime().tm_hour == sleep_time[0] and sleep_time[1] - 5 <= time.localtime().tm_min <= sleep_time[1] + 5:
+            msg_queue.put({
+                'type': 'system',
+                'time': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'msg': '{系统提示：你有点困，想睡觉了}',
+                'notice': True
+            })
+            time.sleep(5)
 
         # 暂停15s
         time.sleep(10)
@@ -315,6 +348,7 @@ def assistant_core():
 
     ### 启动 ###
     log('启动ai模块.')
+    log(f'睡眠时间重置：{sleep_time}')
     while power:
 
         ### 普通模式 ###
@@ -351,7 +385,7 @@ def assistant_core():
             ### 没有则本地生成 ###
             if not result:
                 for i in range(1, 4):
-                    result = chat_local.main(config['allow_doi//'], prompt, tmp[1])
+                    result = chat_local.main(config['allow_doi'], prompt, tmp[1])
                     try:
                         result = json.loads(result)
                         break
@@ -367,7 +401,6 @@ def assistant_core():
 
             ###  若生成后有新的信息，则重新生成 ###
             tmp = msg_get()
-            print(tmp)
             if tmp[2] != last_time:
                 log('有新消息，重新生成...')
                 re_generate = True

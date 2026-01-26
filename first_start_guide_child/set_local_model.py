@@ -25,7 +25,7 @@ import ctypes
 # 变量池 #
 ########
 pull_mf = (
-    'FROM ./Qwen3-14B-Q6_K.gguf\n'
+    'FROM ./DeepSeek-R1-Distill-Qwen-14B-Q6_K.gguf\n'
     'TEMPLATE """\n'
     '{{- if .System }}{{ .System }}{{ end }}\n'
     '{{- range $i, $_ := .Messages }}\n'
@@ -216,7 +216,6 @@ def ollama_set():
 
     return port
 
-
 ######################################################################################################################
 # 主程序 #
 ########
@@ -233,24 +232,24 @@ def main():
     ollama_list = subprocess.run(["ollama", "list"], capture_output=True, text=True).stdout.splitlines()
     check = False
     for i in ollama_list:
-        if 'qwen3-14b-q6-k' in i:
+        if 'deepseek-r1-14b-q6-k' in i:
             print('模型存在.')
             check = True
             break
     # 不存在就创建模型
     if not check:
         print('下载本地模型...')
-        print('模型选用：Qwen3-14B-Q6_K')
+        print('模型选用：DeepSeek-R1-Distill-Qwen-14B-Q6_K')
         while True:
-            if 'Qwen3-14B-Q6_K.gguf' in os.listdir():
-                tmp_model = 'Qwen3-14B-Q6_K.gguf'
+            if 'DeepSeek-R1-Distill-Qwen-14B-Q6_K.gguf' in os.listdir():
+                tmp_model = 'DeepSeek-R1-Distill-Qwen-14B-Q6_K.gguf'
             else:
-                tmp_model = download_file('https://www.modelscope.cn/models/Qwen/Qwen3-14B-GGUF/resolve/master/Qwen3-14B-Q6_K.gguf')
+                tmp_model = download_file('https://www.modelscope.cn/models/lmstudio-community/DeepSeek-R1-Distill-Qwen-14B-GGUF/resolve/master/DeepSeek-R1-Distill-Qwen-14B-Q6_K.gguf')
             if tmp_model:
                 # 安装
                 with open('install.mf', 'w', encoding='utf-8') as f:
                     f.write(pull_mf)
-                subprocess.run(['ollama', 'create', 'qwen3-14b-q6-k', '-f', 'install.mf'])
+                subprocess.run(['ollama', 'create', 'deepseek-r1-14b-q6-k', '-f', 'install.mf'])
                 os.remove('install.mf')
                 print('模型安装完成.')
                 break
@@ -263,7 +262,7 @@ def main():
                     if tmp == '' or tmp == '1':
                         break
                     elif tmp == '2':
-                        print('模型下载链接：https://www.modelscope.cn/models/Qwen/Qwen3-14B-GGUF/resolve/master/Qwen3-14B-Q6_K.gguf')
+                        print('模型下载链接：https://www.modelscope.cn/models/lmstudio-community/DeepSeek-R1-Distill-Qwen-14B-GGUF/resolve/master/DeepSeek-R1-Distill-Qwen-14B-Q6_K.gguf')
                         print('模型下载完成后将此模型放置到程序目录下.')
 
     ### （可选）是否允许doi ###

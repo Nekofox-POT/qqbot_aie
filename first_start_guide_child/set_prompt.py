@@ -48,14 +48,24 @@ def main():
     print('步骤3/3：配置提示词')
 
     ### 配置提示词 ###
-    if 'role_set.txt' not in os.listdir():
-        with open('role_set.txt', 'w', encoding='utf-8') as f:
-            f.write(prompt_example)
-        print('我们帮你生成了一份角色模板')
-        print('角色模板可以自由修改角色设定。')
-    print('请编辑保存好之后按Enter继续...')
-    subprocess.run(['notepad', 'role_set.txt'])
-    input('>|')
+    while True:
+        if 'role_set.txt' not in os.listdir():
+            with open('role_set.txt', 'w', encoding='utf-8') as f:
+                f.write(prompt_example)
+            print('我们帮你生成了一份角色模板')
+            print('角色模板可以自由修改角色设定。')
+        print('请编辑保存好之后按Enter继续...')
+        subprocess.run(['notepad', 'role_set.txt'])
+        input('>|')
+        # 读取
+        try:
+            with open('role_set.txt', 'r', encoding='utf-8') as f:
+                prompt = f.read()
+            break
+        except:
+            print('文件读取失败.')
+            print('请重新编辑...')
+            continue
 
     ### 获取角色名 ###
     print('为了使场景更真实，请填写ai角色昵称和用户昵称')
@@ -77,15 +87,15 @@ def main():
                 print('')
                 print('##########################')
                 print('提示词：')
-                with open('role_set.txt', 'r', encoding='utf-8') as f:
-                    print(f.read())
+                print(prompt)
                 print(f'ai昵称：{assistant_name}')
                 print(f'用户昵称：{user_name}')
                 print('##########################')
                 print('')
                 out = {
                     'assistant_name': assistant_name,
-                    'user_name': user_name
+                    'user_name': user_name,
+                    'prompt': prompt
                 }
                 return out
 

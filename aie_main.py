@@ -16,6 +16,7 @@ import datetime
 import os
 import signal
 import random
+import pickle
 
 ############
 # 自创建模块 #
@@ -23,10 +24,36 @@ import random
 import msg_receive
 from chat import chat_api, chat_local, chat_doi
 import send_api
+from aes_encryption import aes_encryption
 
 #########
 # 变量池 #
 ########
+
+# 示例提示词
+prompt_example = (
+    '[角色]\n'
+    '你将扮演一个19岁的女生，名字叫“XX”。\n'
+    '\n'
+    '[角色性格]\n'
+    '性格时腼腆时撒娇调皮。\n'
+    '\n'
+    '[外表]\n'
+    '穿着时尚，头发长而顺。脸上总是挂着微笑。\n'
+    '\n'
+    '[喜好]\n'
+    '喜欢听音乐，喜欢陪伴在男朋友的身旁。\n'
+    '\n'
+    '[用户角色]\n'
+    '20岁男生，名字叫“OO”。\n'
+    '\n'
+    '[用户角色性格]\n'
+    '喜欢调戏对象，但对对象非常体贴。\n'
+    '\n'
+    '[经历]\n'
+    '在高中时期与男朋友相识。现在两人考入了不同的大学，仍然保持紧密的联系\n'
+)
+
 power = True    # 电源
 last_heart_post = int(time.time())  # 上一次心跳上报时间
 msg_queue = multiprocessing.Queue() # fastapi队列
@@ -42,13 +69,7 @@ last_doi_list_range = 0   # 最后一个激活爱爱的语句指针
 # 睡眠类
 sleep_time = [random.choice([22, 23, 0, 1, 2, 3, 4]), random.randint(5, 54)] # 随机睡眠时间段
 is_sleep = False    # 睡觉指示
-
-### 读取提示词 ###
-try:
-    with open('role_set.txt', 'r', encoding='utf-8') as f:
-        prompt = f.read()
-except:
-    print('文件读取出错，请检查文件完整性.')
+sleep_notice = True # 睡眠提示
 
 ########################################################################################################################
 # 小组件
@@ -74,16 +95,31 @@ def log(msg):
     with open('aie_log.txt', 'w', encoding='utf-8') as f:
         f.writelines(tmp)
         f.close()
+def plog(msg):
+    log(msg)
+    if config['report_error']:
+        r = send_api.send_private_msg(config['post_addres'], config['user_id'], msg)
+        if r:
+            log(f'日志上报失败：{r}')
 
 ########################################################################################################################
 # 信息处理
 
 ###########
-# 信息储存 #
+# 信息收集 #
 ##########
-def msg_store():
+def msg_collect():
 
-    global last_heart_post, doi_mode, last_doi_list_range, is_sleep
+    global msg_list, last_heart_post, doi_mode, last_doi_list_range, is_sleep
+    tmp_list = []
+
+    ### 读数据 ###
+    with msg_list_lock:
+        try:
+            with open('chat.ppp', 'rb') as f:
+                msg_list = pickle.loads(aes_encryption.decrypt(f.read()))
+        except:
+            msg_list = []
 
     ### 启动fastapi ###
     log('启动fastapi.')
@@ -104,8 +140,6 @@ def msg_store():
                     last_heart_post = int(time.time())
                 # 用户
                 elif tmp['type'] == 'user':
-
-                    print(f'收到消息：{tmp["msg"]}')
                     # 遍历处理消息
                     msg = ''
                     for i in tmp['msg']:
@@ -146,8 +180,6 @@ def msg_store():
                         e = False
                         for i in range(len(msg_list)):
                             # 如果是用户/系统
-                            print(len(msg_list) - 1 - i)
-                            print(msg_list[len(msg_list) - 1 - i])
                             if msg_list[len(msg_list) - 1 - i]['type'] == 'user' or msg_list[len(msg_list) - 1 - i]['type'] == 'system':
                                 # 头为0则直接添加
                                 if len(msg_list) - 1 - i == 0:
@@ -159,22 +191,9 @@ def msg_store():
                             else:
                                 if e:
                                     last_doi_list_range = len(msg_list) - i
-                                    print('用户最后发言指针：')
-                                    print('----------------------')
-                                    try:
-                                        print(msg_list[last_doi_list_range - 1])
-                                    except:
-                                        pass
-                                    print(f'{msg_list[last_doi_list_range]} ←--')
-                                    try:
-                                        print(msg_list[last_doi_list_range + 1])
-                                    except:
-                                        pass
-                                    print('----------------------')
-                                    break
                     # 睡觉
                     elif tmp['msg'] == 'sleep':
-                        log('该睡觉了')
+                        log('该睡觉了.')
                         is_sleep = True
                     # 普通消息
                     else:
@@ -186,8 +205,38 @@ def msg_store():
                         msg_list.append(tmp)
                 # 系统消息
                 elif tmp['type'] == 'system':
-                    log(f'[{tmp['msg']}]')
-                    msg_list.append(tmp)
+                    # 爱爱结束
+                    if tmp['msg'] == 'end_doi':
+                        log('爱爱结束.')
+                        # 合并发言
+                        if last_doi_list_range == 0:
+                            msg_list = []
+                            msg_queue.put({
+                                'type': 'system',
+                                'time': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                                'msg': '{系统提示：你们刚才经历了一次文爱}',
+                                'notice': True
+                            })
+                        else:
+                            msg_list = msg_list[:last_doi_list_range - 1]
+                            msg_queue.put({
+                                'type': 'system',
+                                'time': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                                'msg': '{系统提示：你们刚才经历了一次文爱}',
+                                'notice': True
+                            })
+                        doi_mode = False
+                    # 普通消息
+                    else:
+                        log(f'[{tmp['msg']}]')
+                        msg_list.append(tmp)
+
+            ### 储存 ###
+            with msg_list_lock:
+                if tmp_list != msg_list:
+                    tmp_list = msg_list.copy()
+                    with open('chat.ppp', 'wb') as f:
+                        f.write(aes_encryption.encrypt(pickle.dumps(tmp_list)))
 
         except:
 
@@ -286,10 +335,6 @@ def msg_get():
 
                 msg += '\n'
 
-    print('---------------------')
-    print(msg)
-    print('---------------------')
-
     return [new_msg, msg, last_user_time]
 
 ########################################################################################################################
@@ -302,7 +347,7 @@ def action(jump = False):
 
     if not jump:
 
-        global last_action_time, sleep_time, is_sleep
+        global last_action_time, sleep_time, is_sleep, sleep_notice
 
         ### 睡眠操作 ###
         # 该睡觉了
@@ -321,20 +366,22 @@ def action(jump = False):
                 'notice': True
             })
             sleep_time = [random.choice([22, 23, 0, 1, 2, 3, 4]), random.randint(5, 54)]
+            sleep_notice = True
             log(f'睡眠时间重置：{sleep_time}')
             time.sleep(30)
         # 睡觉提示
-        if time.localtime().tm_hour == sleep_time[0] and sleep_time[1] - 5 <= time.localtime().tm_min <= sleep_time[1] + 5:
+        if time.localtime().tm_hour == sleep_time[0] and sleep_time[1] - 5 <= time.localtime().tm_min <= sleep_time[1] + 5 and sleep_notice:
             msg_queue.put({
                 'type': 'system',
                 'time': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                 'msg': '{系统提示：你有点困，想睡觉了}',
                 'notice': True
             })
+            sleep_notice = False
             time.sleep(5)
 
         # 暂停15s
-        time.sleep(10)
+        time.sleep(1)
 
         # 记录
         last_action_time = int(time.time())
@@ -361,8 +408,15 @@ def assistant_core():
             else:
                 action()
 
-            ### 读取信息 ###
-            tmp = msg_get()
+            ### 等待读取信息 ###
+            while True:
+                # 获取新信息
+                tmp = msg_get()
+                time.sleep(10)
+                # 有更新则重新等
+                if msg_get()[2] != tmp[2]:
+                    continue
+                break
             # 如果没有新的消息就不管
             if not tmp[0]:
                 continue
@@ -373,7 +427,7 @@ def assistant_core():
             result = []
             for i in range(1, 4):
                 # 生成
-                result = chat_api.main(config['model_list'], config['model_random'], config['allow_doi'], prompt, tmp[1])
+                result = chat_api.main(config['model_list'], config['model_random'], config['allow_doi'], config['prompt'], tmp[1])
                 try:
                     result = json.loads(result)
                     break
@@ -383,9 +437,9 @@ def assistant_core():
                     continue
 
             ### 没有则本地生成 ###
-            if not result:
+            if not result and config['local_model']:
                 for i in range(1, 4):
-                    result = chat_local.main(config['allow_doi'], prompt, tmp[1])
+                    result = chat_local.main(config['allow_doi'], config['prompt'], tmp[1])
                     try:
                         result = json.loads(result)
                         break
@@ -396,7 +450,7 @@ def assistant_core():
 
             ### 还是没有 ###
             if not result:
-                log('生成失败.')
+                plog('生成失败.')
                 continue
 
             ###  若生成后有新的信息，则重新生成 ###
@@ -442,7 +496,7 @@ def assistant_core():
             ###  生成(本地ai) ###
             result = []
             for i in range(1, 4):
-                result = chat_doi.main(prompt, tmp[1])
+                result = chat_doi.main(config['prompt'], tmp[1])
                 try:
                     result = json.loads(result)
                     break
@@ -453,18 +507,71 @@ def assistant_core():
 
             ### 还是没有 ###
             if not result:
-                log('生成失败.')
+                plog('生成失败.')
                 continue
 
             ### 回复 ###
             for i in result:
                 # 添加消息队列
+                for e in i:
+                    time.sleep(random.uniform(0.2, 1.2))
                 msg_queue.put({
                     'type': 'assistant',
                     'msg': i,
                     'time': datetime.datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'),
                 })
 
+#########################################################################################################################
+# 指令集 #
+########
+def cmd(msg):
+
+    ### 重置聊天列表 ###
+    def clear():
+        global msg_list
+        msg_list = []
+        r = send_api.send_private_msg(config['post_addres'], config['user_id'], 'ok.')
+        if r:
+            log(f'发送失败：{r}')
+        log('聊天列表已重置.')
+    ### 重载人设 ###
+    def reload():
+        global config
+        try:
+            with open('role_set.txt', 'r', encoding='utf-8') as f:
+                tmp = f.read()
+        except:
+            plog('Error：文件读取失败，请检查文件。（已重新生成一份，本次不作录入）')
+            with open('role_set.txt', 'w', encoding='utf-8') as f:
+                f.write(prompt_example)
+        else:
+            config['prompt'] = tmp
+            with open('config.ppp', 'wb') as f:
+                f.write(aes_encryption.encrypt(pickle.dumps(config)))
+            log('人设已重载.')
+            r = send_api.send_private_msg(config['post_addres'], config['user_id'], 'ok.')
+            if r:
+                log(f'发送失败：{r}')
+    ### 关机 ###
+    def shutdown():
+        global power
+        r = send_api.send_private_msg(config['post_addres'], config['user_id'], '再见哦！')
+        if r:
+            log(f'发送失败：{r}')
+        log('设置关机状态.')
+        power = False
+
+    command = {
+        '清空': clear,
+        '重载': reload,
+        '再见': shutdown
+    }
+
+    log(f'收到指令：{msg}')
+    if msg in command:
+        command[msg]()
+    else:
+        log(f'未知指令：{msg}')
 
 ########################################################################################################################
 # 主程序 #
@@ -481,13 +588,26 @@ def main(input_config):
     multiprocessing.freeze_support()
 
     ### 开启信息接收器 ###
-    ps_msg_store = threading.Thread(target=msg_store)
-    ps_msg_store.start()
+    ps_msg_collect = threading.Thread(target=msg_collect)
+    ps_msg_collect.start()
 
     ### 开启ai模块 ###
     ps_assistant_core = threading.Thread(target=assistant_core)
     ps_assistant_core.start()
+
+    ### 等待结束（处理指令） ###
+    while power:
+        try:
+            tmp = cmd_queue.get_nowait()
+            cmd(tmp)
+        except:
+            time.sleep(0.1)
+            continue
+
+    ### 结束 ###
+    ps_msg_collect.join()
     ps_assistant_core.join()
+    log('aie关闭.')
 
 ########################################################################################################################
 if __name__ == '__main__':

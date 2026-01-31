@@ -43,8 +43,16 @@ async def index(request: fastapi.Request):
         # 私聊信息
         elif tmp.get('post_type') == 'message':
             if tmp.get('message_type') == 'private' and tmp.get('user_id') == user_id:
+                # 爱爱
+                if tmp['raw_message'] == '（爱你~）':
+                    msg_queue.put({
+                        'type': 'system',
+                        'time': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                        'msg': 'end_doi',
+                        'notice': True
+                    })
                 # 指令
-                if tmp['raw_message'][0] == '#':
+                elif tmp['raw_message'][0] in [':', '：']:
                     cmd_queue.put(tmp['raw_message'][1:])
                 # 普通信息
                 else:

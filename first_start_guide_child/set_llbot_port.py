@@ -108,6 +108,23 @@ def main():
             else:
                 print('请输入正确的选项.')
 
+        ### 是否上报出错信息 ###
+        print('是否上报出错信息：')
+        print('1. 是')
+        print('2. 否')
+        while True:
+            tmp = str(input('>'))
+            if tmp == '1':
+                report_error = True
+                print(f'选择了: "是"')
+                break
+            elif tmp == '2':
+                report_error = False
+                print(f'选择了: "否"')
+                break
+            else:
+                print('请输入正确的选项.')
+
         ### 目标用户 ###
         print('请输入对象的QQ号：')
         while True:
@@ -138,8 +155,9 @@ def main():
         print(f'监听地址：{host}')
         print(f'监听端口：{port}')
         print(f'llbot地址：{post_addres}')
-        print(f'是否开启心跳包检查：{heart_check}')
         print(f'对象QQ号：{user_id}')
+        print(f'是否开启心跳包检查：{heart_check}')
+        print(f'是否上报出错信息：{report_error}')
         print('##########################')
         print('')
         print('1.确认 2.重新填写 （默认：1）')
@@ -152,6 +170,7 @@ def main():
                         'port': port,
                         'post_addres': post_addres,
                         'heart_check': heart_check,
+                        'report_error': report_error,
                         'user_id': user_id,
                     }
                 print('')

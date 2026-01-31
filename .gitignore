@@ -164,6 +164,7 @@ cython_debug/
 old/
 test/
 config.ppp
+chat.ppp
 role_set.txt
 aie_log.txt
 aes_encryption/aes_encryption.py

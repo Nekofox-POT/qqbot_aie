@@ -47,9 +47,8 @@ def get_msg(host, message_id):
             'message_id': message_id,
         }).text)
         if r['status'] == 'ok':
-            return r['message']
+            return r['data']['raw_message']
         else:
             return None
-    except Exception as e:
-        print(e)
+    except:
         return None

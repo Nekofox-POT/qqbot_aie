@@ -172,6 +172,7 @@ def main():
         'model_list': model_list,
         'model_random': model_random,
         'local_model': local_mode,
+        'allow_doi': False,
     }
     print('----------------------------')
     return out

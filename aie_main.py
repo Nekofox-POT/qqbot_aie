@@ -138,6 +138,8 @@ def msg_collect():
                 # 心跳
                 if tmp['type'] == 'heart':
                     last_heart_post = int(time.time())
+                    if not tmp['status'] and config['heart_check']:
+                        plog('设备已离线，请检查设备是否正常！')
                 # 用户
                 elif tmp['type'] == 'user':
                     # 遍历处理消息

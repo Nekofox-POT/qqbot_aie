@@ -134,7 +134,7 @@ def main():
                 print(f'输入了: "{user_id}"')
                 print('测试...')
                 try:
-                    r = json.loads(requests.post('http://192.168.91.128:8312/send_private_msg', data={
+                    r = json.loads(requests.post(f'{post_addres}send_private_msg', data={
                         'user_id': user_id,
                         'message': '你好吖~（突然冒出！）',
                     }).text)

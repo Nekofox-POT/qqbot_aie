@@ -45,8 +45,6 @@ def aiq_start():
         config = first_start_guide.guide(version)
         print('初始化...')
         print('>|')
-    for i in config:
-        print(f'{i}：{config[i]}')
 
     ### 启动 ###
     aie_main.main(config)

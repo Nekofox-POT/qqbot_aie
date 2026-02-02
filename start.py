@@ -13,9 +13,14 @@ import pickle
 ############
 # 自创建模块 #
 ############
+try:
+    from aes_encryption import aes_encryption
+except:
+    print('请先运行aes_encryption/aes_create.py 生成 aes_encryption.py')
+    input('按任意键继续>|')
+    from aes_encryption import aes_encryption
 import aie_main
 import first_start_guide
-from aes_encryption import aes_encryption
 
 #########
 # 变量池 #

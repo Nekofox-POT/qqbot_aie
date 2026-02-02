@@ -21,6 +21,8 @@
 确保安装好前端环境（llbot，napcat等）
 （本地部署需要）安装好ollama。
 ```
+#### llbot项目地址：https://www.llonebot.com/guide/introduction
+#### ollama项目地址：https://ollama.com/
 
 ### 运行程序
 
@@ -28,8 +30,6 @@
 运行 start.exe
 配置好http端口，接口
 ```
-#### llbot项目地址：https://www.llonebot.com/guide/introduction
-#### ollama项目地址：https://ollama.com/
 
 ### 关于前端配置请看这里（以llbot为例）：
 [llbot配置参考](guide_md/llbot_set.md)

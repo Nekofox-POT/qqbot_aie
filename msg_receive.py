@@ -50,6 +50,7 @@ async def index(request: fastapi.Request):
                         'type': 'system',
                         'time': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                         'msg': 'end_doi',
+                        'msg_id': tmp['message_id'],
                         'notice': True
                     })
                 # 指令
@@ -60,7 +61,6 @@ async def index(request: fastapi.Request):
                     msg_queue.put({
                         'type': 'user',
                         'msg': tmp['message'],
-                        'raw_msg': tmp['raw_message'],
                         'msg_id': tmp['message_id'],
                         'time': f'{datetime.datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")}'
                     })

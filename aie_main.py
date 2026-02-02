@@ -209,25 +209,34 @@ def msg_collect():
                 elif tmp['type'] == 'system':
                     # 爱爱结束
                     if tmp['msg'] == 'end_doi':
-                        log('爱爱结束.')
-                        # 合并发言
-                        if last_doi_list_range == 0:
-                            msg_list = []
-                            msg_queue.put({
-                                'type': 'system',
-                                'time': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                                'msg': '{系统提示：你们刚才经历了一次文爱}',
-                                'notice': True
-                            })
+                        if config['allow_doi']:
+                            log('爱爱结束.')
+                            # 合并发言
+                            if last_doi_list_range == 0:
+                                msg_list = []
+                                msg_queue.put({
+                                    'type': 'system',
+                                    'time': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                                    'msg': '{系统提示：你们刚才经历了一次文爱}',
+                                    'notice': True
+                                })
+                            else:
+                                msg_list = msg_list[:last_doi_list_range - 1]
+                                msg_queue.put({
+                                    'type': 'system',
+                                    'time': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                                    'msg': '{系统提示：你们刚才经历了一次文爱}',
+                                    'notice': True
+                                })
+                            doi_mode = False
                         else:
-                            msg_list = msg_list[:last_doi_list_range - 1]
+                            # 转发
                             msg_queue.put({
-                                'type': 'system',
-                                'time': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                                'msg': '{系统提示：你们刚才经历了一次文爱}',
-                                'notice': True
+                                'type': 'user',
+                                'msg': '（爱你~）',
+                                'msg_id': tmp['msg_id'],
+                                'time': tmp['time']
                             })
-                        doi_mode = False
                     # 普通消息
                     else:
                         log(f'[{tmp['msg']}]')

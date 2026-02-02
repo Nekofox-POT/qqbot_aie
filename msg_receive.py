@@ -39,7 +39,6 @@ async def index(request: fastapi.Request):
         ### 解析 ###
         # 心跳
         if tmp.get('post_type') == 'meta_event':
-            print(tmp)
             msg_queue.put({'type': 'heart', 'time': int(time.time()), 'status': tmp['status']['online']})
         # 私聊信息
         elif tmp.get('post_type') == 'message':

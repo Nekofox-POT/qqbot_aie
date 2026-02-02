@@ -158,7 +158,7 @@ def msg_collect():
                     msg = msg[:-1]
                     # 添加
                     if msg:
-                        log(f'收到消息：{tmp['raw_msg']}')
+                        log(f'收到消息：{msg}')
                         msg_list.append({
                             'type': 'user',
                             'msg': msg,
@@ -233,7 +233,7 @@ def msg_collect():
                             # 转发
                             msg_queue.put({
                                 'type': 'user',
-                                'msg': '（爱你~）',
+                                'msg': {'type': 'text', 'data': {'text': '（爱你~）'}},
                                 'msg_id': tmp['msg_id'],
                                 'time': tmp['time']
                             })
@@ -242,13 +242,6 @@ def msg_collect():
                         log(f'[{tmp['msg']}]')
                         msg_list.append(tmp)
 
-            ### 储存 ###
-            with msg_list_lock:
-                if tmp_list != msg_list:
-                    tmp_list = msg_list.copy()
-                    with open('chat.ppp', 'wb') as f:
-                        f.write(aes_encryption.encrypt(pickle.dumps(tmp_list)))
-
         except:
 
             ### 溢出检测(大于4k) ###
@@ -256,6 +249,12 @@ def msg_collect():
             if len(str(msg_list)) > 4 * 1024 and not doi_mode:
                 del msg_list[0]
 
+        ### 储存 ###
+        with msg_list_lock:
+            if tmp_list != msg_list:
+                tmp_list = msg_list.copy()
+                with open('chat.ppp', 'wb') as f:
+                    f.write(aes_encryption.encrypt(pickle.dumps(tmp_list)))
         # 性能限制
         time.sleep(0.1)
 

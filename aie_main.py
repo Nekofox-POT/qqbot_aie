@@ -563,17 +563,32 @@ def cmd(msg):
         log('设置关机状态.')
         power = False
 
-    command = {
-        '清空': clear,
-        '重载': reload,
-        '再见': shutdown
-    }
+    command = [
+        ['清空', clear, '清空所有聊天记录'],
+        ['重载', reload, '重新载入人设'],
+        ['再见', shutdown, '关闭系统']
+    ]
 
     log(f'收到指令：{msg}')
-    if msg in command:
-        command[msg]()
-    else:
+    if msg == 'h':
+        tmp = ''
+        for i in command:
+            tmp += f'{i[0]}：{i[2]}\n'
+        if config['allow_doi']:
+            tmp += '（爱你~）：结束爱爱。'
+        r = send_api.send_private_msg(config['post_addres'], config['user_id'], tmp)
+        if r:
+            log(f'发送失败：{r}')
+        return None
+    is_cmd = False
+    for i in command:
+        if i[0] == msg:
+            is_cmd = True
+            i[1]()
+            break
+    if not is_cmd:
         log(f'未知指令：{msg}')
+    return None
 
 ########################################################################################################################
 # 主程序 #

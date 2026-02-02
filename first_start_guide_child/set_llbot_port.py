@@ -49,7 +49,7 @@ def main():
                 print('请输入正确的选项.')
 
         ### 选择端口 ###
-        print('请输入aie监听的端口（默认：8412）：')
+        print('请输入aie监听的端口（默认：8612）：')
         while True:
             tmp = str(input('>'))
             if tmp == '':

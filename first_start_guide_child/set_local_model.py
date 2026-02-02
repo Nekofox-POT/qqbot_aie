@@ -269,6 +269,8 @@ def main():
     print('是否开启doi模式？')
     print('doi模式会生成可能会被风险控制的特定词语')
     print('请根据实际情况选择❤~')
+    print('（注意！若要结束doi模式需要在聊天框输入：“（爱你~）”）')
+    print('（“（爱你~）前面不需要添加“：”）')
     print('1.是 2.否（默认：1.是）')
     while True:
         tmp = str(input('>'))

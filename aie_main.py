@@ -584,7 +584,7 @@ def cmd(msg):
         for i in command:
             tmp += f'{i[0]}：{i[2]}\n'
         if config['allow_doi']:
-            tmp += '（爱你~）：结束爱爱。'
+            tmp += '（爱你~）：结束爱爱。（此指令不需要打“：”）'
         r = send_api.send_private_msg(config['post_addres'], config['user_id'], tmp)
         if r:
             log(f'发送失败：{r}')

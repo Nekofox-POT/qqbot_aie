@@ -38,8 +38,8 @@ rule_prompt = (
     '使用json回复。直接输出可以使用json.loads()转换的语句\n'
     '输出的语句前面不需要带时间，名字。\n'
     '聊天过程会有像“{系统提示：****}”的系统提示，需要做出相对应的回应。\n'
-    '当对方和你说晚安后，在json最后输出“sleep”，如果是系统提示则无视这条规则。\n'
-    '当当前话题结束时，只输出["end"]，如果是sleep或系统提示则无视这条规则\n'
+    '当对方和你说晚安后，你要和他道晚安，然后在json最后输出“sleep”，如果是系统提示则无视这条规则。\n'
+    '当当前话题结束时（约定的事，或者单发送图片表情），只输出["end"]，如果是系统提示则无视这条规则。\n'
     '\n'
     '[对话示例]\n'
     '假设你是A，用户是B\n'
@@ -63,7 +63,7 @@ rule_prompt = (
     '\n'
     '}\n'
     '输出(json类型) {\n'
-    '    ["刚下课", "么么·", "居然让你想我了", "那\\n来找我", "我在饭堂等你"]\n'
+    '    ["刚下课", "么么·", "居然让你想我了", "那来找我", "我在饭堂等你"]\n'
     '}\n'
     '\n'
     '-----\n'
@@ -127,7 +127,7 @@ def main(allow_doi, prompt, msg):
 
     # doi字词添加
     if allow_doi:
-        tmp = rule_prompt[:412] + '如果包含关于性的敏感词语，则只输出“["use_doi"]”，如果是系统提示则无视这条规则。\n' + rule_prompt[412:]
+        tmp = rule_prompt[:433] + '如果包含关于性的敏感词语，则只输出“["use_doi"]”，如果是系统提示则无视这条规则。\n' + rule_prompt[433:]
     else:
         tmp = rule_prompt
 
@@ -136,20 +136,19 @@ def main(allow_doi, prompt, msg):
     client = ollama.Client(host='http://127.0.0.1:11434')
 
     ### 推理 ###
-    try:
-        result = client.chat(
-            model='deepseek-r1-14b-q6-k:latest',
-            options={"temperature": 1},
-            messages=[
-                {"role": "system", "content": tmp + prompt},
-                {"role": "user", "content": msg}
-            ],
-        ).message
-    except Exception as e:
-        log(f'ollama生成失败：{e}')
-        return None
-
-    ### 返回 ###
-    print('#1')
-    print(result.content)
-    return extract_json(remove_think_tag(result.content))
+    for g in range(3):
+        try:
+            result = client.chat(
+                model='deepseek-r1-14b-q6-k:latest',
+                options={"temperature": 1},
+                messages=[
+                    {"role": "system", "content": tmp + prompt},
+                    {"role": "user", "content": msg}
+                ],
+            ).message
+            result = json.loads(extract_json(result.content))
+            return result
+        except Exception as e:
+            log(f'ollama生成失败：{e}')
+            log(f'重试({g + 1} / 3)')
+    return None

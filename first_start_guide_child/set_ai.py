@@ -318,12 +318,12 @@ def add_model():
 
     ### 测试视觉模型 ###
     if vision_model:
-        print('测试文本模型api可用性...')
+        print('测试视觉模型api可用性...')
         try:
             openai.OpenAI(api_key=key, base_url=api).chat.completions.create(
-                model=model,
+                model=vision_model,
                 messages=[
-                    {"role": "system", "content": "简述图片的内容"},
+                    {"role": "system", "content": "用一句话简短的描述图片的内容"},
                     {
                         "role": "user",
                         "content": [
@@ -381,7 +381,7 @@ def main():
             for i in range(len(vision_model_list)):
                 print(
                     f'    {len(model_list) + i + 1}. 视觉模型    模型名称："{vision_model_list[i][1]}" 模型地址："{vision_model_list[i][0]}" api_key："{vision_model_list[i][2]}"')
-            print('')
+        print('')
 
         ### 添加 ###
         print('1.添加 2.重新添加 3.就用这么多')
@@ -461,7 +461,7 @@ def main():
     out = {
         'model_list': model_list,
         'vision_model_list': vision_model_list,
-        'model_random': allow_model_random,
+        'allow_model_random': allow_model_random,
         'local_model': local_mode,
         'allow_doi': False,
     }

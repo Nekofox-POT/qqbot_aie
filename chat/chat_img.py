@@ -92,73 +92,68 @@ def url_to_base64(url):
 ########################################################################################################################
 # 开始程序 #
 ##########
-def main(model_url, api_key, url):
-
-    ### 生成 ###
-    try:
-        tmp = openai.OpenAI(
-            base_url=model_url,
-            api_key=api_key
-        ).chat.completions.create(
-            model="glm-4.6v",
-            stream=False,
-            messages=[
-                {"role": "system", "content": "判断并简述图片的内容\n判断分类图片类型为“动画表情”还是“图片”。\n使用json输出\n输出示例：{\"type\": \"动画表情\", \"context\": 描述的内容}"},
-                {"role": "user", "content": [{"type": "image_url", "image_url": {"url": url_to_base64(url)}}]}
-            ]
-        )
-        tmp = json.loads(extract_json(tmp.choices[0].message.content))
-        return f'[{tmp['type']}: {tmp['context']}]'
-    except Exception as e:
-        log(f'解析失败：{e}')
-        return None
-
-def main(model_list, model_random, url):
+def main(vision_model_list, allow_model_random, url):
 
     # 随机模式
-    if model_random:
+    if allow_model_random:
 
-        model = random.choice(model_list)
+        model = random.choice(vision_model_list)
         log(f'使用模型：{model[1]}')
         log('（随机模式）开始在线生成...')
         try:
-            result = openai.OpenAI(
-                base_url=model[0],
-                api_key=model[2],
-            ).chat.completions.create(
+            result = openai.OpenAI(base_url=model[0], api_key=model[2]).chat.completions.create(
                 model=model[1],
                 stream=False,
                 messages=[
-                    {"role": "system", "content": "判断并简述图片的内容\n判断分类图片类型为“动画表情”还是“图片”。\n使用json输出\n输出示例：{\"type\": \"动画表情\", \"context\": 描述的内容}"},
-                    {"role": "user", "content": [{"type": "image_url", "image_url": {"url": url_to_base64(url)}}]}
+                    {"role": "system", "content": "判断并使用一句话简述图片的内容\n判断分类图片类型为“动画表情”还是“图片”。\n使用json输出\n输出示例：{\"type\": \"动画表情\", \"context\": 描述的内容}"},
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:image/jpeg;base64,{url_to_base64(url)}"
+                                }
+                            }
+                        ]
+                    },
                 ]
             ).choices[0].message.content
-            return json.loads(extract_json(result))
+            result = json.loads(extract_json(result))
+            return f'[{result['type']}: {result['context']}]'
         except Exception as e:
             log(f'{model[1]}生成失败：{e}')
             log('切换顺序模式重试...')
 
     # 顺序模式
-
-    ### 生成 ###
-    for i in model_list:
-        log(f'使用模型：{i[1]}')
-        log('（顺序模式）开始在线生成...')
-        try:
-            result = openai.OpenAI(
-                base_url=i[0],
-                api_key=i[2],
-            ).chat.completions.create(
-                model=i[1],
-                stream=False,
-                messages=[
-                    {"role": "system", "content": "判断并简述图片的内容\n判断分类图片类型为“动画表情”还是“图片”。\n使用json输出\n输出示例：{\"type\": \"动画表情\", \"context\": 描述的内容}"},
-                    {"role": "user", "content": [{"type": "image_url", "image_url": {"url": url_to_base64(url)}}]}
-                ]
-            ).choices[0].message.content
-            return json.loads(extract_json(result))
-        except Exception as e:
-            log(f'{i[1]}生成失败：{e}')
-            log('下一个模型重试.')
-
+    for g in range(3):
+        for i in vision_model_list:
+            log(f'使用模型：{i[1]}')
+            log('（顺序模式）开始在线生成...')
+            try:
+                result = openai.OpenAI(base_url=i[0], api_key=i[2]).chat.completions.create(
+                    model=i[1],
+                    stream=False,
+                    messages=[
+                        {"role": "system",
+                         "content": "判断并使用一句话简述图片的内容\n判断分类图片类型为“动画表情”还是“图片”。\n使用json输出\n输出示例：{\"type\": \"动画表情\", \"context\": 描述的内容}"},
+                        {
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "image_url",
+                                    "image_url": {
+                                        "url": f"data:image/jpeg;base64,{url_to_base64(url)}"
+                                    }
+                                }
+                            ]
+                        },
+                    ]
+                ).choices[0].message.content
+                result = json.loads(extract_json(result))
+                return f'[{result['type']}: {result['context']}]'
+            except Exception as e:
+                log(f'{i[1]}生成失败：{e}')
+                log('下一个模型重试.')
+        log(f'所有模型失败，即将重试({g + 1} / 3)')
     return None

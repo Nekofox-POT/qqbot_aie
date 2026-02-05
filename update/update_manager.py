@@ -35,4 +35,3 @@ def update(config):
             return config
         # 如果有则更新
         config = tmp(config)
-        print(config)

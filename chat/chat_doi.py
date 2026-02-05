@@ -110,26 +110,6 @@ def remove_think_tag(text):
     clean_text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL).strip()
     return clean_text
 
-def is_similar(str1, str2):
-
-    # 如果有一个字符串为空，直接返回False
-    if not str1 or not str2:
-        return False
-
-    # 确定哪个是短句，哪个是长句
-    short, long = (str1, str2) if len(str1) < len(str2) else (str2, str1)
-
-    # 计算短句中有多少字在长句中出现
-    match_count = 0
-    for char in short:
-        if char in long:
-            match_count += 1
-
-    # 计算相似度（匹配字符数除以短句长度）
-    similarity = match_count / len(short)
-
-    return similarity    # 相似度
-
 ########################################################################################################################
 # 开始程序 #
 ##########
@@ -141,9 +121,8 @@ def main(prompt, msg):
     log('开始本地生成...')
     client = ollama.Client(host='http://127.0.0.1:11434')
 
-    while True:
-
-        ### 推理 ###
+    ### 推理 ###
+    for g in range(3):
         try:
             result = client.chat(
                 model='deep-sex:latest',
@@ -153,12 +132,9 @@ def main(prompt, msg):
                     {"role": "user", "content": msg}
                 ],
             ).message
+            result = extract_json(remove_think_tag(result.content))
+            return json.loads(result)
         except Exception as e:
             log(f'ollama生成失败：{e}')
-            return None
-
-        ### 如果太相似则重新生成
-        # 这里留白
-
-        ### 返回 ###
-        return extract_json(remove_think_tag(result.content))
+            log(f'重试({g + 1} / 3)')
+    return None

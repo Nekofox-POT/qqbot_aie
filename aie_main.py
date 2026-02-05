@@ -10,7 +10,6 @@
 ##########
 import multiprocessing
 import time
-import json
 import threading
 import datetime
 import os
@@ -22,7 +21,7 @@ import pickle
 # 自创建模块 #
 ############
 import msg_receive
-from chat import chat_api, chat_local, chat_doi
+from chat import chat_api, chat_local, chat_doi, chat_img
 import send_api
 from aes_encryption import aes_encryption
 
@@ -155,6 +154,14 @@ def msg_collect():
                             text = send_api.get_msg(config['post_addres'], i['data']['id'])
                             msg += f'(回复 "{config['assistant_name']}" : {text})'
                             msg += '\n'
+                        ### 图片/表情 ###
+                        if i['type'] == 'image':
+                            log('接收到图片.')
+                            # 解析图片
+                            img = chat_img.main(config['vision_model_list'], config['allow_model_random'], i['data']['url'])
+                            if img:
+                                msg += img
+                                msg += '\n'
                     msg = msg[:-1]
                     # 添加
                     if msg:
@@ -197,6 +204,13 @@ def msg_collect():
                     elif tmp['msg'] == 'sleep':
                         log('该睡觉了.')
                         is_sleep = True
+                    # 结束话题
+                    elif tmp['msg'] == 'end':
+                        msg_queue.put({
+                            'type': 'assistant',
+                            'msg': ['动画表情'],
+                            'time': datetime.datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'),
+                        })
                     # 普通消息
                     else:
                         # 发送
@@ -209,25 +223,19 @@ def msg_collect():
                 elif tmp['type'] == 'system':
                     # 爱爱结束
                     if tmp['msg'] == 'end_doi':
-                        if config['allow_doi']:
+                        if config['allow_doi'] and doi_mode:
                             log('爱爱结束.')
                             # 合并发言
                             if last_doi_list_range == 0:
                                 msg_list = []
-                                msg_queue.put({
-                                    'type': 'system',
-                                    'time': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                                    'msg': '{系统提示：你们刚才经历了一次文爱}',
-                                    'notice': True
-                                })
                             else:
                                 msg_list = msg_list[:last_doi_list_range - 1]
-                                msg_queue.put({
-                                    'type': 'system',
-                                    'time': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                                    'msg': '{系统提示：你们刚才经历了一次文爱}',
-                                    'notice': True
-                                })
+                            msg_queue.put({
+                                'type': 'system',
+                                'time': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                                'msg': '{系统提示：你们刚才经历了一次文爱}',
+                                'notice': True
+                            })
                             doi_mode = False
                         else:
                             # 转发
@@ -268,82 +276,42 @@ def msg_get():
 
     global last_user_time, last_doi_list_range
 
-    # 普通模式
-    if not doi_mode:
-        with msg_list_lock:
-            ### 新消息提醒 ###
-            new_msg = False
-            try:
-                if msg_list[-1]['type'] == 'user':
+    with msg_list_lock:
+        ### 新消息提醒 ###
+        new_msg = False
+        try:
+            if msg_list[-1]['type'] == 'user':
+                new_msg = True
+            elif msg_list[-1]['type'] == 'system':
+                if msg_list[-1]['notice']:
                     new_msg = True
-                elif msg_list[-1]['type'] == 'system':
-                    if msg_list[-1]['notice']:
+                else:
+                    if msg_list[-2]['type'] == 'user':
                         new_msg = True
-                    else:
-                        if msg_list[-2]['type'] == 'user':
-                            new_msg = True
-            except:
-                pass
-            msg = f'\n当前时间：{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}\n\n'
+        except:
+            pass
+        msg = f'\n当前时间：{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}\n\n'
 
-            ### 格式化 ###
-            for i in msg_list:
+        ### 格式化 ###
+        tmp_range = 0
+        # 爱爱模式（要限制大小）
+        if doi_mode and len(msg_list) > 25:
+            tmp_range = len(msg_list) - 25
+        for i in msg_list[tmp_range:]:
+            # 用户信息
+            if i['type'] == 'user':
+                msg += f'{i['time']} {config['user_name']} :\n'
+                msg += i['msg']
+                last_user_time = i['time']
+            # ai信息
+            elif i['type'] == 'assistant':
+                msg += f'{i['time']} {config['assistant_name']} :\n'
+                msg += i['msg']
+            # 系统信息
+            elif i['type'] == 'system':
+                msg += f'{i['time']} {i['msg']}\n'
 
-                # 用户信息
-                if i['type'] == 'user':
-                    msg += f'{i['time']} {config['user_name']} :\n'
-                    msg += i['msg']
-                    last_user_time = i['time']
-
-                # ai信息
-                elif i['type'] == 'assistant':
-                    msg += f'{i['time']} {config['assistant_name']} :\n'
-                    msg += i['msg']
-
-                # 系统信息
-                elif i['type'] == 'system':
-                    msg += f'{i['time']} {i['msg']}\n'
-
-                msg += '\n'
-
-    # 爱爱模式
-    else:
-
-        with msg_list_lock:
-            ### 新消息提醒 ###
-            new_msg = False
-            try:
-                if msg_list[-1]['type'] == 'user':
-                    new_msg = True
-                elif msg_list[-1]['type'] == 'system':
-                    if msg_list[-1]['notice']:
-                        new_msg = True
-                    else:
-                        if msg_list[-2]['type'] == 'user':
-                            new_msg = True
-            except:
-                pass
-            msg = f'\n当前时间：{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}\n\n'
-
-            ### 格式化 ###
-            # 从指针处开始遍历
-            for i in msg_list[last_doi_list_range:]:
-                # 用户信息
-                if i['type'] == 'user':
-                    msg += f'{i['time']} {config['user_name']} :\n'
-                    msg += i['msg']
-                    last_user_time = i['time']
-
-                # ai信息
-                elif i['type'] == 'assistant':
-                    msg += f'{i['time']} {config['assistant_name']} :\n'
-                    msg += i['msg']
-
-                # 系统信息
-                elif i['type'] == 'system':
-                    pass
-
-                msg += '\n'
+            msg += '\n'
 
     return [new_msg, msg, last_user_time]
 
@@ -363,7 +331,12 @@ def action(jump = False):
         # 该睡觉了
         if is_sleep:
             # 睡眠（随机6-9小时）
-
+            msg_queue.put({
+                'type': 'system',
+                'time': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'msg': '{系统提示：你睡着了}',
+                'notice': True
+            })
             tmp = random.randint(5 * 60, 9 * 60)
             log(f'开始睡眠，时长{tmp}分钟...')
             time.sleep(tmp * 60)
@@ -434,29 +407,11 @@ def assistant_core():
             last_time = tmp[2]
 
             ### 生成(在线ai) ###
-            result = []
-            for i in range(1, 4):
-                # 生成
-                result = chat_api.main(config['model_list'], config['allow_model_random'], config['allow_doi'], config['prompt'], tmp[1])
-                try:
-                    result = json.loads(result)
-                    break
-                except:
-                    log(f'json格式错误，尝试重新生成 ({i} / 3)')
-                    result = []
-                    continue
+            result = chat_api.main(config['model_list'], config['allow_model_random'], config['allow_doi'], config['prompt'], tmp[1])
 
             ### 没有则本地生成 ###
             if not result and config['local_model']:
-                for i in range(1, 4):
-                    result = chat_local.main(config['allow_doi'], config['prompt'], tmp[1])
-                    try:
-                        result = json.loads(result)
-                        break
-                    except:
-                        log(f'json格式错误，尝试重新生成 ({i} / 3)')
-                        result = []
-                        continue
+                result = chat_local.main(config['allow_doi'], config['prompt'], tmp[1])
 
             ### 还是没有 ###
             if not result:
@@ -503,19 +458,14 @@ def assistant_core():
             if not tmp[0]:
                 continue
 
-            ###  生成(本地ai) ###
-            result = []
-            for i in range(1, 4):
-                result = chat_doi.main(config['prompt'], tmp[1])
-                try:
-                    result = json.loads(result)
-                    break
-                except:
-                    log(f'json格式错误，尝试重新生成 ({i} / 3)')
-                    result = []
-                    continue
+            ### 如果模式被改变了，立即退出 ###
+            if not doi_mode:
+                continue
 
-            ### 还是没有 ###
+            ###  生成(本地ai) ###
+            result = chat_doi.main(config['prompt'], tmp[1])
+
+            ### 没有 ###
             if not result:
                 plog('生成失败.')
                 continue

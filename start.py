@@ -44,7 +44,7 @@ def aiq_start():
         if config['version'] != version:
             # 版本号不对，报错
             print('警告：版本号不一致！')
-            print(f'数据库版本号：{config}')
+            print(f'当前数据库版本号：{config}')
             raise IOError
     except:
         # 读取失败，重新创建

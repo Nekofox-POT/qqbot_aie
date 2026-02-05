@@ -437,7 +437,7 @@ def assistant_core():
             result = []
             for i in range(1, 4):
                 # 生成
-                result = chat_api.main(config['model_list'], config['model_random'], config['allow_doi'], config['prompt'], tmp[1])
+                result = chat_api.main(config['model_list'], config['allow_model_random'], config['allow_doi'], config['prompt'], tmp[1])
                 try:
                     result = json.loads(result)
                     break

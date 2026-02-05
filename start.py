@@ -1,7 +1,7 @@
 #
 # aiq/aie 开始程序
 #
-version = '3.0.0'    # 版本号
+version = '3.1'    # 版本号
 ########################################################################################################################
 # 资源准备 #
 
@@ -20,7 +20,8 @@ except:
     input('按任意键继续>|')
     from aes_encryption import aes_encryption
 import aie_main
-import first_start_guide
+from first_start_guide_child import first_start_guide
+from update import update_manager
 
 #########
 # 变量池 #
@@ -36,10 +37,14 @@ def aiq_start():
         ### 读取 ###
         with open('config.ppp', 'rb') as f:
             config = pickle.loads(aes_encryption.decrypt(f.read()))
-        ### 检查版本 ###
+        ### 检查版本更新 ###
+        config = update_manager.update(config)
+        with open('config.ppp', 'wb') as f:
+            f.write(aes_encryption.encrypt(pickle.dumps(config)))
         if config['version'] != version:
-            # 更新
-            print('版本号不一致')
+            # 版本号不对，报错
+            print('警告：版本号不一致！')
+            print(f'数据库版本号：{config}')
             raise IOError
     except:
         # 读取失败，重新创建

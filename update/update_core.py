@@ -1,10 +1,9 @@
 #
-# aiq/aie 引导创建程序
-# 步骤2：配置大模型
+# aie配置文件升级程序
 #
 
 ########################################################################################################################
-# 资源准备 #
+# 资源准备
 
 ###########
 # 第三方库 #
@@ -13,15 +12,11 @@ import openai
 
 ############
 # 自创建模块 #
-############
+###########
 
 #########
 # 变量池 #
 ########
-model_list = [] # 已添加的大模型列表
-vision_model_list = []  # 已添加的视觉模型列表
-
-# 图片测试base64
 test_image_base64 = (
     '/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUG'
     'BIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAEAAQADAS'
@@ -147,254 +142,164 @@ test_image_base64 = (
 )
 
 ########################################################################################################################
-# 模型添加函数 #
-#############
-def add_model():
+# 升级程序
 
-    global model_list, vision_model_list
+#################
+# 3.0.0 → 3.1.x #
+#################
+def v300to31(config):
 
-    while True:
+    ##############
+    # 模型添加函数 #
+    #############
+    def add_model():
 
-        ### 获取 ###
-        print('请选择添加的模型：')
-        print('1.ChatGLM    glm-4.7 / glm-4.6v')
-        print('2.Qwen       qwen3-max-2026-01-23 / qwen3-vl-plus')
-        print('3.Deepseek   Deepseek-V3.2 (deepseek-chat) / None')
-        print('4.Doubao     doubao-seed-1-8-251228 / doubao-seed-1-8-251228')
-        print('5.Kimi       kimi-k2.5 / kimi-k2.5')
-        print('')
-        print('0.自定义')
-        print('')
-        tmp = str(input('>'))
-        if tmp == '1':
-            print('已选择: "ChatGLM"')
-            api = 'https://open.bigmodel.cn/api/paas/v4/'
-            print('你想将模型用作：')
-            print('1.文本生成 2.图像生成 3.俩者皆要 (默认：3)')
-            while True:
-                choice = str(input('>'))
-                if choice == '1':
-                    model = 'glm-4.7'
-                    vision_model = None
-                    break
-                elif choice == '2':
-                    model = None
-                    vision_model = 'glm-4.6v'
-                    break
-                elif choice == '3' or choice == '':
-                    model = 'glm-4.7'
-                    vision_model = 'glm-4.6v'
-                    break
-                else:
-                    print('请输入正确的选项.')
-        elif tmp == '2':
-            print('已选择: "Qwen"')
-            api = 'https://dashscope.aliyuncs.com/compatible-mode/v1'
-            print('你想将模型用作：')
-            print('1.文本生成 2.图像生成 3.俩者皆要 (默认：3)')
-            while True:
-                choice = str(input('>'))
-                if choice == '1':
-                    model = 'qwen3-max-2026-01-23'
-                    vision_model = None
-                    break
-                elif choice == '2':
-                    model = None
-                    vision_model = 'qwen3-vl-plus'
-                    break
-                elif choice == '3' or choice == '':
-                    model = 'qwen3-max-2026-01-23'
-                    vision_model = 'qwen3-vl-plus'
-                    break
-                else:
-                    print('请输入正确的选项.')
-        elif tmp == '3':
-            print('已选择: "Deepseek"')
-            api = 'https://api.deepseek.com'
-            model = 'deepseek-chat'
-            vision_model = None
-        elif tmp == '4':
-            print('已选择: "Doubao"')
-            api = 'https://ark.cn-beijing.volces.com/api/v3'
-            print('你想将模型用作：')
-            print('1.文本生成 2.图像生成 3.俩者皆要 (默认：3)')
-            while True:
-                choice = str(input('>'))
-                if choice == '1':
-                    model = 'doubao-seed-1-8-251228'
-                    vision_model = None
-                    break
-                elif choice == '2':
-                    model = None
-                    vision_model = 'doubao-seed-1-8-251228'
-                    break
-                elif choice == '3' or choice == '':
-                    model = 'doubao-seed-1-8-251228'
-                    vision_model = 'doubao-seed-1-8-251228'
-                    break
-                else:
-                    print('请输入正确的选项.')
-        elif tmp == '5':
-            print('已选择: "Kimi"')
-            api = 'https://api.moonshot.cn/v1'
-            print('你想将模型用作：')
-            print('1.文本生成 2.图像生成 3.俩者皆要 (默认：3)')
-            while True:
-                choice = str(input('>'))
-                if choice == '1':
-                    model = 'kimi-k2.5'
-                    vision_model = None
-                    break
-                elif choice == '2':
-                    model = None
-                    vision_model = 'kimi-k2.5'
-                    break
-                elif choice == '3' or choice == '':
-                    model = 'kimi-k2.5'
-                    vision_model = 'kimi-k2.5'
-                    break
-                else:
-                    print('请输入正确的选项.')
-        elif tmp == '0':
-            print('自定义.')
-            print('请输入模型地址：')
-            api = str(input('>'))
-            print(f'输入了: "{api}"')
-            print('请输入使用的模型：')
-            name = str(input('>'))
-            print(f'输入了: "{name}"')
-            print('你想将模型用作：')
-            print('1.文本生成 2.图像生成')
-            while True:
-                choice = str(input('>'))
-                if choice == '1':
-                    model = name
-                    vision_model = None
-                    break
-                elif choice == '2':
-                    model = None
-                    vision_model = name
-                    break
-                else:
-                    print('请输入正确的选项.')
-        else:
-            print('请输入正确的选项.')
-            continue
-        print('请输入api_key：')
-        key = str(input('>'))
-        print(f'输入了: "{key}"')
-        break
+        while True:
 
-    ### 测试 ###
-    if model:
-        print('测试文本模型api可用性...')
-        try:
-            openai.OpenAI(api_key=key, base_url=api).chat.completions.create(
-                model=model,
-                messages=[
-                    {"role": "system", "content": "You are a helpful assistant."},
-                    {"role": "user", "content": "Hello"}
-                ],
-                stream=False
-            )
-            print('测试成功.')
-            model_list.append([api, model, key])
-        except Exception as e:
-            print('测试失败，请检查api_key是否正确或模型地址是否正确')
-            print(f'失败原因：{e}')
-            print('1.取消写入 2.仍要写入')
-            while True:
-                tmp = str(input('>'))
-                if tmp == '1':
-                    print('取消写入.')
-                    break
-                elif tmp == '2':
-                    print('继续写入.')
-                    print(f'写入: "{api}" 模型名称："{model}" api_key："{key}"')
-                    model_list.append([api, model, key])
-                    break
-                else:
-                    print('请输入正确的选项.')
+            print('请选择添加的模型：')
+            print('1.ChatGLM    glm-4.6v')
+            print('2.Qwen       qwen3-vl-plus')
+            print('3.Doubao     doubao-seed-1-8-251228')
+            print('4.Kimi       kimi-k2.5')
+            print('')
+            print('0.自定义')
+            print('')
+            tmp = str(input('>'))
+            if tmp == '1':
+                print('已选择: "ChatGLM"')
+                api = 'https://open.bigmodel.cn/api/paas/v4/'
+                model = 'glm-4.6v'
+            elif tmp == '2':
+                print('已选择: "Qwen"')
+                api = 'https://dashscope.aliyuncs.com/compatible-mode/v1'
+                model = 'qwen3-vl-plus'
+            elif tmp == '3':
+                print('已选择: "Doubao"')
+                api = 'https://ark.cn-beijing.volces.com/api/v3'
+                model = 'doubao-seed-1-8-251228'
+            elif tmp == '4':
+                print('已选择: "Kimi"')
+                api = 'https://api.moonshot.cn/v1'
+                model = 'kimi-k2.5'
+            elif tmp == '0':
+                print('自定义.')
+                print('请输入模型地址：')
+                api = str(input('>'))
+                print(f'输入了: "{api}"')
+                print('请输入使用的模型：')
+                model = str(input('>'))
+                print(f'输入了: "{model}"')
+            else:
+                print('请输入正确的选项.')
+                continue
+            print('请输入api_key：')
+            key = str(input('>'))
+            print(f'输入了: "{key}"')
 
-    ### 测试视觉模型 ###
-    if vision_model:
-        print('测试文本模型api可用性...')
-        try:
-            openai.OpenAI(api_key=key, base_url=api).chat.completions.create(
-                model=model,
-                messages=[
-                    {"role": "system", "content": "简述图片的内容"},
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": f"data:image/jpeg;base64,{test_image_base64}"
+            # 测试
+            print('测试api可用性...')
+            try:
+                openai.OpenAI(
+                    api_key=key,
+                    base_url=api
+                ).chat.completions.create(
+                    model=model,
+                    messages=[
+                        {"role": "system", "content": "简述图片的内容"},
+                        {
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "image_url",
+                                    "image_url": {
+                                        "url": f"data:image/jpeg;base64,{test_image_base64}"
+                                    }
                                 }
-                            }
-                        ]
-                    },
-                ],
-                stream=False
-            )
-            print('测试成功.')
-            vision_model_list.append([api, vision_model, key])
-        except Exception as e:
-            print('测试失败，请检查api_key是否正确或模型地址是否正确')
-            print(f'失败原因：{e}')
-            print('1.取消写入 2.仍要写入')
-            while True:
-                tmp = str(input('>'))
-                if tmp == '1':
-                    print('取消写入.')
-                    break
-                elif tmp == '2':
-                    print('继续写入.')
-                    print(f'写入: "{api}" 模型名称："{model}" api_key："{key}"')
-                    vision_model_list.append([api, vision_model, key])
-                    break
-                else:
-                    print('请输入正确的选项.')
-
-########################################################################################################################
-# 主程序 #
-########
-def main():
-
-    global model_list, vision_model_list
+                            ]
+                        },
+                    ],
+                    stream=False
+                )
+                print('测试成功.')
+                return [api, model, key]
+            except Exception as e:
+                print('测试失败，请检查api_key是否正确或模型地址是否正确')
+                print(f'失败原因：{e}')
+                print('1.重新写入 2.取消写入 3.仍要写入')
+                while True:
+                    tmp = str(input('>'))
+                    if tmp == '1':
+                        print('重新写入...')
+                        break
+                    elif tmp == '2':
+                        print('取消写入.')
+                        return None
+                    elif tmp == '3':
+                        print('写入.')
+                        return [api, model, key]
+                    else:
+                        print('请输入正确的选项.')
 
     print('----------------------------')
+    print('Version 3.0.x → 3.1.x')
+    print('----------------------------')
+    print('')
+    print('应3.1.x版本要求，本次更新需要添加全新的视觉模型。')
 
-    ### 大模型添加 ###
+    ### 添加视觉模型 ###
+    # 扫描
+    vision_model_list = []
+    for i in config['model_list']:
+        # 如果有预制的模型
+        if i[0] == 'https://open.bigmodel.cn/api/paas/v4/':
+            vision_model_list.append([i[0], 'glm-4.6v', i[2]])
+        elif i[0] == 'https://ark.cn-beijing.volces.com/api/v3/chat/completions':
+            vision_model_list.append([i[0], 'doubao-seed-1-8-251228', i[2]])
+        elif i[0] == 'https://dashscope.aliyuncs.com/compatible-mode/v1':
+            vision_model_list.append([i[0], 'qwen3-vl-plus', i[2]])
+        elif i[0] == 'https://api.moonshot.cn/v1':
+            vision_model_list.append([i[0], 'kimi-k2.5', i[2]])
+    # 如果有
+    if vision_model_list:
+        print('检测到有以下可添加的视觉模型：')
+        for i in vision_model_list:
+            print(f'模型名称："{i[1]}" 模型地址："{i[0]}" api_key："{i[2]}"')
+        print('是否添加？')
+        print('1.是 2.否 (默认：是)')
+        choice = str(input('>'))
+        if choice == '' or choice == '1':
+            print('添加.')
+        else:
+            print('取消.')
+            vision_model_list = []
+    # 添加操作
     while True:
 
         ### 展示 ###
         print('当前大模型列表')
         print('')
-        if len(model_list) == 0 and len(vision_model_list) == 0:
+        if len(vision_model_list) == 0:
             print('0. 空')
         else:
-            for i in range(len(model_list)):
-                print(
-                    f'    {i + 1}. 文本模型    模型名称："{model_list[i][1]}" 模型地址："{model_list[i][0]}" api_key："{model_list[i][2]}"')
             for i in range(len(vision_model_list)):
-                print(
-                    f'    {len(model_list) + i + 1}. 视觉模型    模型名称："{vision_model_list[i][1]}" 模型地址："{vision_model_list[i][0]}" api_key："{vision_model_list[i][2]}"')
-            print('')
+                print(f'{i + 1}. 模型名称："{vision_model_list[i][1]}" 模型地址："{vision_model_list[i][0]}" api_key："{vision_model_list[i][2]}"')
+        print('')
 
         ### 添加 ###
         print('1.添加 2.重新添加 3.就用这么多')
         tmp = str(input('>'))
         if tmp == '1':
+
             ### 添加模型 ###
-            add_model()
+            tmp = add_model()
+            if tmp:
+                vision_model_list.append(tmp)
+
         elif tmp == '2':
             print('确定要全部重写吗？')
             print('1.确定 2：取消')
             tmp = str(input('>'))
             if tmp == '1':
-                model_list = []
                 vision_model_list = []
                 print('已重置.')
             if tmp == '2':
@@ -402,68 +307,21 @@ def main():
             else:
                 print('请输入正确的选项.')
         elif tmp == '3':
-            if len(model_list) == 0 or len(vision_model_list) == 0:
-                print('请至少添加一个 文本模型 / 视觉模型.')
+            if len(vision_model_list) == 0:
+                print('当前没有模型，请添加模型.')
             else:
                 break
         else:
             print('请输入正确的选项.')
+    # 写入
+    config['vision_model_list'] = vision_model_list
 
-    ### 模型随机 ###
-    print('是否开启随机模型挑选？')
-    print('此功能将在每次对话中随机选择一个模型调用。（随机模式）')
-    print('若不使用，则按照载入顺序来尝试调用。（主备模式）')
-    print('1.是 2.否')
-    while True:
-        tmp = str(input('>'))
-        if tmp == '1':
-            allow_model_random = True
-            print(f'选择了: "是"')
-            break
-        elif tmp == '2':
-            allow_model_random = False
-            print(f'选择了: "否"')
-            break
-        else:
-            print('请输入正确的选项.')
+    ### 修改变量 ###
+    config['allow_model_random'] = config['model_random']
+    del config['model_random']
 
-    ### 本地模型 ###
-    print('是否使用本地模型？')
-    print('当远程模型不可用时（断网，api欠费等情况）')
-    print('将使用本地模型进行对话。')
-    print('! (注意！若想使用 爱爱❤~ 功能则必须选择 "是" ) !')
-    print('1.是 2.否 (默认值：是)')
-    while True:
-        tmp = str(input('>'))
-        if tmp == '' or tmp == '1':
-            local_mode = True
-            print(f'选择了: "是"')
-            break
-        elif tmp == '2':
-            local_mode = False
-            print(f'选择了: "否"')
-            break
-        else:
-            print('请输入正确的选项.')
+    ### 修改版本号 ###
+    config['version'] = '3.1'
 
-    ### 展示所有信息 ###
-    print('')
-    print('##########################')
-    print(f'已添加的模型：')
-    for i in range(len(model_list)):
-        print(f'    {i + 1}. 文本模型    模型名称："{model_list[i][1]}" 模型地址："{model_list[i][0]}" api_key："{model_list[i][2]}"')
-    for i in range(len(vision_model_list)):
-        print(f'    {len(model_list) + i + 1}. 视觉模型    模型名称："{vision_model_list[i][1]}" 模型地址："{vision_model_list[i][0]}" api_key："{vision_model_list[i][2]}"')
-    print(f'是否使用随机模型模式：{allow_model_random}')
-    print(f'是否使用本地模型推理：{local_mode}')
-    print('##########################')
-    print('')
-    out = {
-        'model_list': model_list,
-        'vision_model_list': vision_model_list,
-        'model_random': allow_model_random,
-        'local_model': local_mode,
-        'allow_doi': False,
-    }
-    print('----------------------------')
-    return out
+    ### 返回 ###
+    return config

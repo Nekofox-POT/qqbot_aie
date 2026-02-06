@@ -220,11 +220,11 @@ def msg_collect():
                         is_sleep = True
                     # 结束话题
                     elif tmp['msg'] == 'end':
-                        msg_queue.put({
-                            'type': 'system',
+                        log(f'[戳了戳: {config['user_name']}]')
+                        msg_list.append({
+                            'type': 'assistant',
+                            'msg': f'[戳了戳: {config['user_name']}]',
                             'time': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                            'msg': f'戳了戳: {config['user_name']}',
-                            'notice': False
                         })
                         r = send_api.friend_poke(config['post_addres'], config['user_id'])
                         if r:

@@ -33,10 +33,9 @@ def send_private_msg(host, user_id, msg):
         }).text)
         if r['status'] != 'ok':
             return r
+        return None
     except Exception as e:
         return e
-    else:
-        return None
 
 ##############
 # 获取消息文本 #
@@ -47,8 +46,22 @@ def get_msg(host, message_id):
             'message_id': message_id,
         }).text)
         if r['status'] == 'ok':
-            return r['data']['raw_message']
+            return r['data']
         else:
             return None
     except:
         return None
+
+#########
+# 拍一拍 #
+########
+def friend_poke(host, user_id):
+    try:
+        r = json.loads(requests.post(f'{host}friend_poke', data={
+            'user_id': user_id
+        }).text)
+        if r['status'] != 'ok':
+            return r
+        return None
+    except Exception as e:
+        return e

@@ -104,6 +104,40 @@ def plog(msg):
 ########################################################################################################################
 # 信息处理
 
+################
+# 用户信息格式化 #
+###############
+def process_user_msg(raw_msg):
+    # 遍历消息
+    msg = ''
+    for i in raw_msg:
+        ### 文本 ###
+        if i['type'] == 'text':
+            msg += i['data']['text']
+            msg += '\n'
+        ### 回复 ###
+        if i['type'] == 'reply':
+            # 获取原信息
+            text = send_api.get_msg(config['post_addres'], i['data']['id'])
+            msg += '(\n'
+            if text['user_id'] == config['user_id']:
+                msg += f'回复 "{config['user_name']}" :\n'
+            else:
+                msg += f'回复 "{config['assistant_name']}" :\n'
+            # 遍历消息
+            msg += process_user_msg(text['message'])
+            msg += '\n)\n'
+        ### 图片/表情 ###
+        if i['type'] == 'image':
+            log('接收到图片.')
+            # 解析图片
+            img = chat_img.main(config['vision_model_list'], config['allow_model_random'], i['data']['url'])
+            if img:
+                msg += img
+                msg += '\n'
+    msg = msg[:-1]
+    return msg
+
 ###########
 # 信息收集 #
 ##########
@@ -142,27 +176,7 @@ def msg_collect():
                 # 用户
                 elif tmp['type'] == 'user':
                     # 遍历处理消息
-                    msg = ''
-                    for i in tmp['msg']:
-                        ### 文本 ###
-                        if i['type'] == 'text':
-                            msg += i['data']['text']
-                            msg += '\n'
-                        ### 回复 ###
-                        if i['type'] == 'reply':
-                            # 获取原信息
-                            text = send_api.get_msg(config['post_addres'], i['data']['id'])
-                            msg += f'(回复 "{config['assistant_name']}" : {text})'
-                            msg += '\n'
-                        ### 图片/表情 ###
-                        if i['type'] == 'image':
-                            log('接收到图片.')
-                            # 解析图片
-                            img = chat_img.main(config['vision_model_list'], config['allow_model_random'], i['data']['url'])
-                            if img:
-                                msg += img
-                                msg += '\n'
-                    msg = msg[:-1]
+                    msg = process_user_msg(tmp['msg'])
                     # 添加
                     if msg:
                         log(f'收到消息：{msg}')

@@ -1,0 +1,1 @@
+pyinstaller -F --hidden-import=PIL --hidden-import=PIL.Image --hidden-import=PIL.ImageTk --collect-all PIL .\start.py

@@ -40,7 +40,7 @@ rule_prompt = (
     '输出的语句前面不需要带时间，名字。\n'
     '聊天过程会有像“{系统提示：****}”的系统提示，需要做出相对应的回应。\n'
     '当对方和你说晚安后，你要和他道晚安，然后在json最后输出“sleep”，如果是系统提示则无视这条规则。\n'
-    '当当前话题结束时（约定的事，或者单发送图片表情），只输出["end"]，如果是系统提示则无视这条规则。\n'
+    '当感觉话题结束时，只输出["end"]，如果是系统提示则无视这条规则。\n'
     '\n'
     '[对话示例]\n'
     '假设你是A，用户是B\n'
@@ -120,7 +120,7 @@ def main(model_list, allow_model_random, allow_doi, prompt, msg):
 
     # doi字词添加
     if allow_doi:
-        tmp = rule_prompt[:433] + '如果包含关于性的敏感词语，则只输出“["use_doi"]”，如果是系统提示则无视这条规则。\n' + rule_prompt[433:]
+        tmp = rule_prompt[:417] + '如果包含关于性的敏感词语，则只输出“["use_doi"]”，如果是系统提示则无视这条规则。\n' + rule_prompt[417:]
     else:
         tmp = rule_prompt
 

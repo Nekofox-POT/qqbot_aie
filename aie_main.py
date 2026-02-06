@@ -221,10 +221,15 @@ def msg_collect():
                     # 结束话题
                     elif tmp['msg'] == 'end':
                         msg_queue.put({
-                            'type': 'assistant',
-                            'msg': ['动画表情'],
-                            'time': datetime.datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'),
+                            'type': 'system',
+                            'time': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                            'msg': f'戳了戳: {config['user_name']}',
+                            'notice': False
                         })
+                        r = send_api.friend_poke(config['post_addres'], config['user_id'])
+                        if r:
+                            log(f'发送失败：{r}')
+                            continue
                     # 普通消息
                     else:
                         # 发送

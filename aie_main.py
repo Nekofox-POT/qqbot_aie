@@ -354,7 +354,7 @@ def action(jump = False):
                 'type': 'system',
                 'time': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                 'msg': '{系统提示：你睡着了}',
-                'notice': True
+                'notice': False
             })
             tmp = random.randint(5 * 60, 9 * 60)
             log(f'开始睡眠，时长{tmp}分钟...')

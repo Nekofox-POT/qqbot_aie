@@ -36,6 +36,7 @@ rule_prompt = (
     '不要主动开辟话题。\n'
     '不要主动向对方发出邀请。\n'
     '聊天不要太主动。\n'
+    '注意当前话题进展，若对方发送相隔时间过长等可以进行新的话题，不要一直提旧事。\n'
     '使用json回复。直接输出可以使用json.loads()转换的语句\n'
     '输出的语句前面不需要带时间，名字。\n'
     '聊天过程会有像“{系统提示：****}”的系统提示，需要做出相对应的回应。\n'
@@ -120,7 +121,7 @@ def main(model_list, allow_model_random, allow_doi, prompt, msg):
 
     # doi字词添加
     if allow_doi:
-        tmp = rule_prompt[:328] + '如果包含关于性的敏感词语，则只输出“["use_doi"]”，如果是系统提示则无视这条规则。\n' + rule_prompt[328:]
+        tmp = rule_prompt[:474] + '如果包含关于性的敏感词语，则只输出“["use_doi"]”，如果是系统提示则无视这条规则。\n' + rule_prompt[474:]
     else:
         tmp = rule_prompt
 

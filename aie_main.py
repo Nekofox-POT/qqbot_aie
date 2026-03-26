@@ -64,6 +64,7 @@ action_free_status = True   # 空闲状态
 last_user_time = 0  # 用户最后一次发言时间
 doi_mode = False    # doi模式
 last_doi_list_range = 0   # 最后一个激活爱爱的语句指针
+heart_post_active = False   # 上报警告
 
 # 睡眠类
 sleep_time = [random.choice([22, 23, 0, 1, 2, 3, 4]), random.randint(5, 54)] # 随机睡眠时间段
@@ -171,8 +172,12 @@ def msg_collect():
                 # 心跳
                 if tmp['type'] == 'heart':
                     last_heart_post = int(time.time())
-                    if not tmp['status'] and config['heart_check']:
+                    if not tmp['status'] and config['heart_check'] and not heart_post_active:
+                        heart_post_active = True
                         plog('设备已离线，请检查设备是否正常！')
+                    else:
+                        heart_post_active = False
+
                 # 用户
                 elif tmp['type'] == 'user':
                     # 遍历处理消息

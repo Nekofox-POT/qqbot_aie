@@ -172,9 +172,10 @@ def msg_collect():
                 # 心跳
                 if tmp['type'] == 'heart':
                     last_heart_post = int(time.time())
-                    if not tmp['status'] and config['heart_check'] and not heart_post_active:
-                        heart_post_active = True
-                        plog('设备已离线，请检查设备是否正常！')
+                    if not tmp['status'] and config['heart_check']:
+                        if not heart_post_active:
+                            heart_post_active = True
+                            plog('设备已离线，请检查设备是否正常！')
                     else:
                         heart_post_active = False
 
